@@ -274,15 +274,19 @@ if __name__ == "__main__":
     # Get port from environment variable (for deployment) or use default
     port = int(os.getenv("PORT", 8001))
     
+    # Check if running in production (Railway sets RAILWAY_ENVIRONMENT)
+    is_production = os.getenv("RAILWAY_ENVIRONMENT") is not None
+    
     print("🌐 Server will start at:")
     print(f"   Backend:  http://localhost:{port}")
     print(f"   API Docs: http://localhost:{port}/docs")
+    print(f"   Environment: {'Production' if is_production else 'Development'}")
     print()
     
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True,
+        reload=not is_production,  # Disable reload in production
         log_level="info"
     )

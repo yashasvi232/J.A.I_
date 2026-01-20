@@ -1,0 +1,13 @@
+# Alternative Railway configuration without Nixpacks
+[build]
+builder = "herokuish"
+
+[deploy]
+startCommand = "pip install -r requirements.txt && cd backend && python main.py"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+
+[env]
+PYTHONPATH = "/app/backend"
+PYTHON_VERSION = "3.11.0"
