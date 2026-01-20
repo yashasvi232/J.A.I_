@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -63,6 +64,10 @@ print("   ✅ Lawyer requests router included")
 app.include_router(ai_matching.router, prefix="/api/ai", tags=["AI Services"])
 print("   ✅ AI matching router included")
 print("🎉 All routers included successfully!")
+
+# Mount static files (HTML pages)
+app.mount("/pages", StaticFiles(directory="../pages"), name="pages")
+print("✅ Static files mounted at /pages")
 
 @app.get("/")
 async def root():
