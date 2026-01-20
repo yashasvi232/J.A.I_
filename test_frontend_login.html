@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend Login</title>
+</head>
+<body>
+    <h1>Test Frontend Login</h1>
+    
+    <div>
+        <h3>Test Client Login</h3>
+        <button onclick="testClientLogin()">Test Client Login</button>
+        <div id="clientResult"></div>
+    </div>
+    
+    <div>
+        <h3>Test Lawyer Login</h3>
+        <button onclick="testLawyerLogin()">Test Lawyer Login</button>
+        <div id="lawyerResult"></div>
+    </div>
+
+    <script>
+        async function testClientLogin() {
+            const resultDiv = document.getElementById('clientResult');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'client@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p style="color: green;">✅ Client Login Success!</p>
+                        <p>User: ${data.user.first_name} ${data.user.last_name}</p>
+                        <p>Type: ${data.user.user_type}</p>
+                        <p>Token: ${data.access_token.substring(0, 20)}...</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Login Failed: ${data.detail}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testLawyerLogin() {
+            const resultDiv = document.getElementById('lawyerResult');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('http://localhost:8001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'lawyer@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p style="color: green;">✅ Lawyer Login Success!</p>
+                        <p>User: ${data.user.first_name} ${data.user.last_name}</p>
+                        <p>Type: ${data.user.user_type}</p>
+                        <p>Token: ${data.access_token.substring(0, 20)}...</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Login Failed: ${data.detail}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

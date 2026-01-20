@@ -1,0 +1,16 @@
+{
+  "name": "jai-platform",
+  "version": "1.0.0",
+  "description": "J.A.I - Jurist Artificial Intelligence Platform",
+  "main": "backend/main.py",
+  "scripts": {
+    "start": "bash start.sh",
+    "dev": "cd backend && python main.py"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": ["legal", "ai", "fastapi", "python"],
+  "author": "J.A.I Team",
+  "license": "MIT"
+}

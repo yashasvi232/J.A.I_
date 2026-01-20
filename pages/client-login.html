@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In - J.A.I</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="login-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="Logo.jpeg" alt="J.A.I" class="logo-img">
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+            </ul>
+            <div class="nav-auth">
+                <a href="lawyer-login.html" class="lawyer-link">Are you a Lawyer?</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="login-wrapper">
+        <div class="login-container">
+            
+            <div class="login-left" style="background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=2070&auto=format&fit=crop');">
+                <div class="overlay">
+                    <h2>Welcome <span class="accent">Back</span></h2>
+                    <p style="margin-bottom: 20px;">Access top-rated lawyers, manage your cases, and get trusted legal advice securely with our professional platform.</p>
+                    
+                    <ul style="text-align: left; list-style: none; margin: 0 auto; max-width: 300px;">
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: #ff7875; margin-right: 10px;"></i> Secure client portal</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: #ff7875; margin-right: 10px;"></i> Case management tools</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: #ff7875; margin-right: 10px;"></i> Direct lawyer communication</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="login-right">
+                
+                <div class="form-toggle">
+                    <button id="loginBtn" class="active" onclick="showLogin()">Log In</button>
+                    <button id="signupBtn" onclick="showSignup()">Sign Up</button>
+                </div>
+
+                <form id="loginForm" class="auth-form">
+                    <h3>Client Login</h3>
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" placeholder="Enter password" required>
+                    </div>
+                    <div class="form-actions">
+                        <label><input type="checkbox"> Remember me</label>
+                        <a href="#" class="forgot-pass">Forgot Password?</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Log In</button>
+                </form>
+
+                <form id="signupForm" class="auth-form" style="display: none;">
+                    <h3>Create Account</h3>
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input type="text" placeholder="John Doe" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Email Address</label>
+                        <input type="email" placeholder="Enter your email" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Create Password</label>
+                        <input type="password" placeholder="Create a strong password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+                    
+                    <p class="terms-text">By signing up, you agree to our <a href="client-terms.html" target="_blank">Terms & Conditions</a> and Privacy Policy.</p>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. TOGGLE LOGIC ---
+        const loginForm = document.getElementById("loginForm");
+        const signupForm = document.getElementById("signupForm");
+        const loginBtn = document.getElementById("loginBtn");
+        const signupBtn = document.getElementById("signupBtn");
+
+        function showLogin() {
+            loginForm.style.display = "block";
+            signupForm.style.display = "none";
+            loginBtn.classList.add("active");
+            signupBtn.classList.remove("active");
+        }
+
+        function showSignup() {
+            loginForm.style.display = "none";
+            signupForm.style.display = "block";
+            loginBtn.classList.remove("active");
+            signupBtn.classList.add("active");
+        }
+
+        // --- 2. STANDARD LOGIN SIMULATION ---
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // Stop page from reloading
+            const btn = loginForm.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            
+            // Add loading state
+            btn.innerHTML = '<span class="loading-spinner"></span>Logging in...';
+            btn.classList.add('btn-loading');
+            btn.disabled = true;
+            
+            // Get form data
+            const email = loginForm.querySelector('input[type="email"]').value;
+            const password = loginForm.querySelector('input[type="password"]').value;
+            
+            // API call to backend
+            fetch('http://localhost:8001/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.access_token) {
+                    // Store token and user info
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('userType', data.user.user_type);
+                    
+                    btn.innerHTML = '<i class="fas fa-check"></i> Success!';
+                    btn.style.background = 'linear-gradient(135deg, var(--success-green), #10b981)';
+                    
+                    setTimeout(() => {
+                        // Check if there's a redirect URL stored
+                        const redirectUrl = localStorage.getItem('redirectAfterLogin');
+                        
+                        if (redirectUrl) {
+                            // Clear the stored redirect URL
+                            localStorage.removeItem('redirectAfterLogin');
+                            // Redirect to the intended page
+                            window.location.href = redirectUrl;
+                        } else {
+                            // Redirect based on user type
+                            if (data.user.user_type === 'client') {
+                                window.location.href = "client-dashboard.html";
+                            } else {
+                                window.location.href = "index.html";
+                            }
+                        }
+                    }, 800);
+                } else {
+                    throw new Error(data.detail || 'Login failed');
+                }
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                btn.innerHTML = '<i class="fas fa-exclamation"></i> Login Failed';
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                    btn.classList.remove('btn-loading');
+                    btn.disabled = false;
+                }, 2000);
+            });
+        });
+
+        // --- 3. SIGNUP SIMULATION ---
+        signupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = signupForm.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+
+            // Add loading state
+            btn.innerHTML = '<span class="loading-spinner"></span>Creating Account...';
+            btn.classList.add('btn-loading');
+            btn.disabled = true;
+
+            // Get form data
+            const fullName = signupForm.querySelector('input[type="text"]').value;
+            const email = signupForm.querySelector('input[type="email"]').value;
+            const password = signupForm.querySelector('input[type="password"]').value;
+            
+            const userData = {
+                email: email,
+                password: password,
+                full_name: fullName,
+                user_type: 'client'
+            };
+
+            // API call to backend
+            fetch('http://localhost:8001/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData)
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.user) {
+                    // Store token and user info
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('userType', data.user.user_type);
+                    
+                    btn.innerHTML = '<i class="fas fa-check"></i> Account Created!';
+                    btn.style.background = 'linear-gradient(135deg, var(--success-green), #10b981)';
+                    
+                    setTimeout(() => {
+                        // Check if there's a redirect URL stored
+                        const redirectUrl = localStorage.getItem('redirectAfterLogin');
+                        
+                        if (redirectUrl) {
+                            localStorage.removeItem('redirectAfterLogin');
+                            window.location.href = redirectUrl;
+                        } else {
+                            window.location.href = "client-dashboard.html";
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error(data.detail || 'Registration failed');
+                }
+            })
+            .catch(error => {
+                console.error('Registration error:', error);
+                console.log('Full error details:', error);
+                
+                // Show more specific error message
+                let errorMessage = 'Registration Failed';
+                if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                btn.innerHTML = `<i class="fas fa-exclamation"></i> ${errorMessage}`;
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-loading');
+                    btn.disabled = false;
+                    btn.style.background = '';
+                }, 3000);
+            });
+        });
+    </script>
+
+</body>
+</html>

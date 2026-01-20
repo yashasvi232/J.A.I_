@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Terms and Conditions - J.A.I</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .terms-container {
+            padding-top: 100px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        
+        .terms-header {
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .terms-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .terms-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .terms-content {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            margin-bottom: 40px;
+        }
+        
+        .terms-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .terms-section:last-child {
+            border-bottom: none;
+        }
+        
+        .terms-section h2 {
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .terms-section h3 {
+            color: #1e293b;
+            font-size: 1.2rem;
+            margin: 20px 0 10px 0;
+            font-weight: 600;
+        }
+        
+        .terms-section p {
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .terms-section ul {
+            color: #374151;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        
+        .terms-section li {
+            margin-bottom: 8px;
+        }
+        
+        .last-updated {
+            color: #64748b;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        
+        .client-highlight {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+            margin: 20px 0;
+        }
+        
+        .client-highlight h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+        
+        .dashboard-cta {
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .dashboard-cta h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.5rem;
+        }
+        
+        .dashboard-cta p {
+            margin: 0 0 20px 0;
+            opacity: 0.9;
+        }
+        
+        .cta-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .cta-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="Logo.jpeg" alt="J.A.I" class="logo-img">
+            </a>
+            <ul class="nav-links">
+                <li><a href="client-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            </ul>
+            <div class="nav-auth" id="navAuth">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="terms-container">
+        <div class="terms-header">
+            <div class="container">
+                <h1><i class="fas fa-file-contract"></i> Client Terms & Conditions</h1>
+                <p>Your rights and responsibilities as a J.A.I client</p>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="terms-content">
+                <p class="last-updated">Last updated: January 11, 2026</p>
+
+                <div class="client-highlight">
+                    <h3><i class="fas fa-info-circle"></i> Important for Clients</h3>
+                    <p>These terms specifically outline your rights and responsibilities as a client using J.A.I to find and connect with legal professionals.</p>
+                </div>
+
+                <div class="terms-section">
+                    <h2>1. Client Services</h2>
+                    <p>As a J.A.I client, you have access to:</p>
+                    <ul>
+                        <li><strong>AI-Powered Lawyer Matching:</strong> Our intelligent system matches you with qualified attorneys based on your legal needs</li>
+                        <li><strong>Secure Communication:</strong> Protected messaging and document sharing with your chosen lawyers</li>
+                        <li><strong>Case Management:</strong> Track your legal matters and appointments through your dashboard</li>
+                        <li><strong>Transparent Pricing:</strong> Clear fee structures and no hidden costs</li>
+                        <li><strong>Quality Assurance:</strong> All lawyers are verified and maintain professional standing</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>2. Your Responsibilities as a Client</h2>
+                    <ul>
+                        <li><strong>Accurate Information:</strong> Provide truthful and complete information about your legal needs</li>
+                        <li><strong>Timely Communication:</strong> Respond promptly to lawyer communications and requests</li>
+                        <li><strong>Fee Payment:</strong> Pay agreed legal fees and platform charges on time</li>
+                        <li><strong>Confidentiality:</strong> Maintain confidentiality of sensitive legal information</li>
+                        <li><strong>Respectful Conduct:</strong> Treat lawyers and platform staff with respect and professionalism</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>3. Platform Fees and Billing</h2>
+                    <p><strong>For Clients:</strong></p>
+                    <ul>
+                        <li>Initial consultation fee: ₹299 (significantly lower than typical ₹2,000 consultation fees)</li>
+                        <li>No platform membership fees for clients</li>
+                        <li>Legal service fees are agreed directly between you and your chosen lawyer</li>
+                        <li>All fees are clearly displayed before you commit to any service</li>
+                        <li>Refund policy available for unused consultation credits</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>4. Your Rights as a Client</h2>
+                    <ul>
+                        <li><strong>Choice of Lawyer:</strong> You can choose from multiple qualified lawyers for your case</li>
+                        <li><strong>Transparent Pricing:</strong> All costs are disclosed upfront with no hidden fees</li>
+                        <li><strong>Quality Service:</strong> Expect professional, competent legal representation</li>
+                        <li><strong>Privacy Protection:</strong> Your personal and case information is kept confidential</li>
+                        <li><strong>Support Access:</strong> 24/7 platform support for technical issues</li>
+                        <li><strong>Case Switching:</strong> Option to consult another lawyer if not satisfied with initial consultation</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>5. Privacy and Data Protection</h2>
+                    <p>Your privacy is our priority:</p>
+                    <ul>
+                        <li>All communications are encrypted and secure</li>
+                        <li>Personal information is never shared without your consent</li>
+                        <li>Case details are only accessible to you and your chosen lawyers</li>
+                        <li>You can request data deletion at any time</li>
+                        <li>We comply with all applicable data protection laws</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>6. Limitation of Platform Liability</h2>
+                    <p>J.A.I serves as a connection platform:</p>
+                    <ul>
+                        <li>We facilitate introductions but do not provide legal advice directly</li>
+                        <li>Legal service quality is the responsibility of individual lawyers</li>
+                        <li>Case outcomes depend on various factors beyond our control</li>
+                        <li>Our AI recommendations are tools to assist, not replace, professional judgment</li>
+                        <li>We maintain quality standards but cannot guarantee specific legal outcomes</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>7. Account Management</h2>
+                    <ul>
+                        <li>You can update your profile and preferences at any time</li>
+                        <li>Account deactivation is available through your dashboard</li>
+                        <li>Ongoing lawyer relationships continue even if you leave the platform</li>
+                        <li>Case history and documents remain accessible for legal record-keeping</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>8. Support and Contact</h2>
+                    <p>For client support and questions:</p>
+                    <p><strong>Email:</strong> client-support@jai-platform.com<br>
+                    <strong>Phone:</strong> 1-800-JAI-CLIENT<br>
+                    <strong>Live Chat:</strong> Available through your dashboard<br>
+                    <strong>Address:</strong> 123 AI Legal Plaza, Suite 456, Tech City, TC 12345</p>
+                </div>
+            </div>
+
+            <div class="dashboard-cta">
+                <h3><i class="fas fa-tachometer-alt"></i> Ready to Get Started?</h3>
+                <p>Access your client dashboard to find lawyers, manage cases, and track your legal matters.</p>
+                <a href="client-dashboard.html" class="cta-btn">
+                    <i class="fas fa-arrow-right"></i> Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in and update navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const navAuth = document.getElementById('navAuth');
+            const isLoggedIn = localStorage.getItem('userLoggedIn') === 'true';
+            const userType = localStorage.getItem('userType');
+            
+            if (isLoggedIn && userType === 'client') {
+                navAuth.innerHTML = `
+                    <span>Welcome, Client</span>
+                    <a href="#" class="login-link" onclick="logout()">Logout</a>
+                `;
+            } else {
+                navAuth.innerHTML = `
+                    <a href="client-login.html" class="login-link">Login</a>
+                `;
+            }
+        });
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('userType');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+
+</body>
+</html>

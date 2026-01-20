@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lawyer Access - J.A.I</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="login-style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="Logo.jpeg" alt="J.A.I" class="logo-img">
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html"><i class="fas fa-home"></i> Home</a></li>
+            </ul>
+            <div class="nav-auth">
+                <a href="client-login.html" class="login-link">Client Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="login-wrapper">
+        <div class="login-container">
+            
+            <div class="login-left" style="background-image: url('https://images.unsplash.com/photo-1505664194779-8beaceb93744?q=80&w=2070&auto=format&fit=crop');">
+                <div class="overlay">
+                    <h2>Grow Your <span class="accent">Practice</span></h2>
+                    <p style="margin-bottom: 20px;">Join thousands of top-rated attorneys expanding their client base with J.A.I's AI-powered legal platform.</p>
+                    
+                    <ul style="text-align: left; list-style: none; margin: 0 auto; max-width: 300px;">
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: #ff7875; margin-right: 10px;"></i> AI-powered client matching</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: #ff7875; margin-right: 10px;"></i> Intelligent case management</li>
+                        <li style="margin-bottom: 10px;"><i class="fas fa-check-circle" style="color: #ff7875; margin-right: 10px;"></i> Automated legal research</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="login-right">
+                
+                <div class="form-toggle">
+                    <button id="loginBtn" class="active" onclick="showLogin()">Log In</button>
+                    <button id="signupBtn" onclick="showSignup()">Join Network</button>
+                </div>
+
+                <form id="loginForm" class="auth-form">
+                    <h3>Attorney Portal</h3>
+                    <div class="input-group">
+                        <label>Work Email</label>
+                        <input type="email" placeholder="name@firm.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" placeholder="Enter password" required>
+                    </div>
+                    <div class="form-actions">
+                        <label><input type="checkbox"> Remember device</label>
+                        <a href="#" class="forgot-pass">Forgot Password?</a>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Log In to Dashboard</button>
+                </form>
+
+                <form id="signupForm" class="auth-form" style="display: none;">
+                    <h3>Apply to Join</h3>
+                    <div class="input-group">
+                        <label>Full Name</label>
+                        <input type="text" placeholder="Sarah Jenkins, Esq." required>
+                    </div>
+                    <div class="input-group">
+                        <label>Bar Association ID</label>
+                        <input type="text" placeholder="State Bar Number" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Work Email</label>
+                        <input type="email" placeholder="name@firm.com" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Create Password</label>
+                        <input type="password" placeholder="Strong password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Submit Application</button>
+                    
+                    <p class="terms-text">Applications are reviewed within 24-48 hours for verification. By applying, you agree to our <a href="lawyer-terms.html" target="_blank">Terms & Conditions</a>.</p>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById("loginForm");
+        const signupForm = document.getElementById("signupForm");
+        const loginBtn = document.getElementById("loginBtn");
+        const signupBtn = document.getElementById("signupBtn");
+
+        function showLogin() {
+            loginForm.style.display = "block";
+            signupForm.style.display = "none";
+            loginBtn.classList.add("active");
+            signupBtn.classList.remove("active");
+        }
+
+        function showSignup() {
+            loginForm.style.display = "none";
+            signupForm.style.display = "block";
+            loginBtn.classList.remove("active");
+            signupBtn.classList.add("active");
+        }
+
+        // Simulate Login
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = loginForm.querySelector('button');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<span class="loading-spinner"></span>Verifying Credentials...';
+            btn.classList.add('btn-loading');
+            btn.disabled = true;
+            
+            // Get form data
+            const email = loginForm.querySelector('input[type="email"]').value;
+            const password = loginForm.querySelector('input[type="password"]').value;
+            
+            // API call to backend
+            fetch('http://localhost:8001/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.access_token && data.user.user_type === 'lawyer') {
+                    // Store token and user info
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('userType', data.user.user_type);
+                    
+                    btn.innerHTML = '<i class="fas fa-check"></i> Verified!';
+                    btn.style.background = 'linear-gradient(135deg, var(--success-green), #10b981)';
+                    
+                    setTimeout(() => {
+                        window.location.href = "lawyer-dashboard.html";
+                    }, 800);
+                } else if (data.access_token && data.user.user_type !== 'lawyer') {
+                    throw new Error('This login is for lawyers only. Please use client login.');
+                } else {
+                    throw new Error(data.detail || 'Login failed');
+                }
+            })
+            .catch(error => {
+                console.error('Login error:', error);
+                btn.innerHTML = '<i class="fas fa-exclamation"></i> Login Failed';
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '';
+                    btn.classList.remove('btn-loading');
+                    btn.disabled = false;
+                }, 2000);
+            });
+        });
+
+        // Simulate Signup
+        signupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = signupForm.querySelector('button');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<span class="loading-spinner"></span>Submitting Application...';
+            btn.classList.add('btn-loading');
+            btn.disabled = true;
+            
+            // Get form data
+            const fullName = signupForm.querySelector('input[type="text"]').value;
+            const barNumber = signupForm.querySelectorAll('input[type="text"]')[1].value;
+            const email = signupForm.querySelector('input[type="email"]').value;
+            const password = signupForm.querySelector('input[type="password"]').value;
+            
+            const userData = {
+                email: email,
+                password: password,
+                full_name: fullName,
+                bar_number: barNumber,
+                user_type: 'lawyer'
+            };
+
+            // API call to backend
+            fetch('http://localhost:8001/api/auth/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.user) {
+                    // Store token and user info
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('userType', data.user.user_type);
+                    
+                    btn.innerHTML = '<i class="fas fa-check"></i> Application Sent!';
+                    btn.style.background = 'linear-gradient(135deg, var(--success-green), #10b981)';
+                    
+                    setTimeout(() => {
+                        window.location.href = "lawyer-dashboard.html";
+                    }, 1000);
+                } else {
+                    throw new Error(data.detail || 'Registration failed');
+                }
+            })
+            .catch(error => {
+                console.error('Registration error:', error);
+                btn.innerHTML = '<i class="fas fa-exclamation"></i> Registration Failed';
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-loading');
+                    btn.disabled = false;
+                    btn.style.background = '';
+                }, 2000);
+            });
+        });
+    </script>
+
+</body>
+</html>

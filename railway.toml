@@ -1,0 +1,14 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "bash start.sh"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+
+[env]
+PYTHONPATH = "/app:/app/backend"
+PORT = "8000"
+MONGODB_URL = "mongodb://localhost:27017"
+DATABASE_NAME = "jai_database"

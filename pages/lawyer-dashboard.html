@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lawyer Dashboard - J.A.I</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dashboard-container {
+            padding-top: 80px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 40px;
+            border-radius: 0 0 20px 20px;
+        }
+        
+        .welcome-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .welcome-text h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .welcome-text p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .profile-status {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        
+        .status-dot.unavailable {
+            background: #ef4444;
+        }
+        
+        .profile-incomplete-banner {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .alert-content h4 {
+            margin: 0 0 5px 0;
+            font-size: 1.2rem;
+        }
+        
+        .alert-content p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        
+        .alert-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .alert-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+        
+        .stat-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .dashboard-card {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        
+        .card-icon {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            margin-right: 12px;
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        
+        .availability-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .availability-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        
+        .availability-toggle:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .toggle-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toggle-label {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 5px;
+        }
+        
+        .toggle-description {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #cbd5e1;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-switch.active {
+            background: var(--primary-color);
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(30px);
+        }
+        
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .action-btn {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        
+        .action-btn i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .action-btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+            color: white;
+        }
+        
+        .action-btn-primary:hover {
+            transform: translateX(5px);
+            box-shadow: 0 8px 20px rgba(255, 120, 117, 0.3);
+        }
+        
+        .action-btn-outline {
+            background: transparent;
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .action-btn-outline:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .case-item {
+            padding: 20px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .case-item:hover {
+            background: #f8fafc;
+            padding-left: 25px;
+        }
+        
+        .case-item:last-child {
+            border-bottom: none;
+        }
+        
+        .case-info h4 {
+            margin: 0 0 5px 0;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        
+        .case-date {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        .case-status {
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-open { 
+            background: linear-gradient(135deg, #fef3c7, #fde68a); 
+            color: #92400e; 
+        }
+        .status-in-progress { 
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe); 
+            color: #1e40af; 
+        }
+        .status-closed { 
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0); 
+            color: #065f46; 
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #cbd5e1;
+        }
+        
+        .badge {
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .request-item {
+            padding: 20px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+        }
+        
+        .request-item:hover {
+            background: #f8fafc;
+        }
+        
+        .request-item:last-child {
+            border-bottom: none;
+        }
+        
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .request-info h4 {
+            margin: 0 0 5px 0;
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .request-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        
+        .request-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .request-description {
+            color: #475569;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .request-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .request-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .request-btn-accept {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .request-btn-accept:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1px);
+        }
+        
+        .request-btn-reject {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .request-btn-reject:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-1px);
+        }
+        
+        .urgency-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .urgency-low { background: #e0f2fe; color: #0277bd; }
+        .urgency-medium { background: #fff3e0; color: #f57c00; }
+        .urgency-high { background: #ffebee; color: #d32f2f; }
+        .urgency-urgent { background: #fce4ec; color: #c2185b; }
+        
+        .budget-info {
+            color: #059669;
+            font-weight: 600;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .form-grid .input-group:nth-child(6),
+        .form-grid .input-group:nth-child(7) {
+            grid-column: 1 / -1;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #f1f5f9;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .welcome-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="Logo.jpeg" alt="J.A.I" class="logo-img">
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="lawyer-terms.html">Terms</a></li>
+            </ul>
+            <div class="nav-auth">
+                <span id="userWelcome">Welcome, Lawyer</span>
+                <a href="#" class="login-link" onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="welcome-banner">
+            <div class="container">
+                <div class="welcome-content">
+                    <div class="welcome-text">
+                        <h1 id="welcomeMessage">Welcome to your practice!</h1>
+                        <p>Manage your cases and grow your legal practice</p>
+                    </div>
+                    <div class="profile-status">
+                        <div class="status-indicator" id="availabilityStatus">
+                            <div class="status-dot" id="statusDot"></div>
+                            <span id="statusText">Available</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+            <div id="profileIncompleteAlert" class="profile-incomplete-banner" style="display: none;">
+                <div class="alert-content">
+                    <h4><i class="fas fa-exclamation-triangle"></i> Complete Your Profile</h4>
+                    <p>Complete your lawyer profile to start receiving case matches and build your reputation.</p>
+                </div>
+                <button class="alert-btn" onclick="showProfileModal()">
+                    <i class="fas fa-user-edit"></i> Complete Profile
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stat-number" id="totalCases">0</div>
+                    <div class="stat-label">Total Cases</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-number" id="activeCases">0</div>
+                    <div class="stat-label">Active Cases</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-number" id="clientRating">0.0</div>
+                    <div class="stat-label">Client Rating</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-rupee-sign"></i>
+                    </div>
+                    <div class="stat-number" id="totalEarnings">₹0</div>
+                    <div class="stat-label">Total Earnings</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <i class="fas fa-toggle-on card-icon"></i>
+                        <h3 class="card-title">Practice Management</h3>
+                    </div>
+                    <div class="availability-section">
+                        <div class="availability-toggle">
+                            <div class="toggle-info">
+                                <div class="toggle-label">Available for new cases</div>
+                                <div class="toggle-description">Toggle to receive new case matches</div>
+                            </div>
+                            <div class="toggle-switch" id="availabilityToggle" onclick="toggleAvailability()">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                        <div class="quick-actions">
+                            <button class="action-btn action-btn-primary" onclick="showProfileModal()">
+                                <i class="fas fa-user-edit"></i>
+                                Edit Profile
+                            </button>
+                            <button class="action-btn action-btn-outline" onclick="viewAllCases()">
+                                <i class="fas fa-folder-open"></i>
+                                View All Cases
+                            </button>
+                            <button class="action-btn action-btn-outline" onclick="viewEarnings()">
+                                <i class="fas fa-chart-line"></i>
+                                View Earnings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-bell card-icon"></i>
+                    <h3 class="card-title">Pending Requests <span id="pendingCount" class="badge">0</span></h3>
+                </div>
+                <div id="pendingRequests">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No pending requests</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-folder-open card-icon"></i>
+                    <h3 class="card-title">Recent Cases</h3>
+                </div>
+                <div id="recentCases">
+                    <div class="empty-state">
+                        <i class="fas fa-briefcase"></i>
+                        <p>No cases assigned yet</p>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <i class="fas fa-handshake card-icon"></i>
+                    <h3 class="card-title">Potential Case Matches</h3>
+                </div>
+                <div id="caseMatches">
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>Loading potential matches...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title"><i class="fas fa-user-edit"></i> Lawyer Profile</h3>
+                <button class="close-btn" onclick="hideProfileModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="profileForm">
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label>Bar Number *</label>
+                        <input type="text" id="barNumber" required placeholder="Enter your bar number">
+                    </div>
+                    <div class="input-group">
+                        <label>Bar State *</label>
+                        <input type="text" id="barState" required placeholder="e.g., California">
+                    </div>
+                    <div class="input-group">
+                        <label>Law Firm</label>
+                        <input type="text" id="lawFirm" placeholder="Your law firm name">
+                    </div>
+                    <div class="input-group">
+                        <label>Years of Experience *</label>
+                        <input type="number" id="yearsExperience" min="0" required placeholder="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Hourly Rate (₹)</label>
+                        <input type="number" id="hourlyRate" min="0" placeholder="500">
+                    </div>
+                    <div class="input-group">
+                        <label>Specializations</label>
+                        <select id="specializations" multiple>
+                            <option value="Property Law">Property Law</option>
+                            <option value="Family Law">Family Law</option>
+                            <option value="Corporate Law">Corporate Law</option>
+                            <option value="Contract and Agreement Law">Contract and Agreement Law</option>
+                            <option value="Consumer Protection Law">Consumer Protection Law</option>
+                            <option value="Labour and Employment Law">Labour and Employment Law</option>
+                            <option value="IPR Law">IPR Law</option>
+                            <option value="Criminal Defense">Criminal Defense</option>
+                            <option value="Public Prosecutor">Public Prosecutor</option>
+                            <option value="Criminal Trial Advocate">Criminal Trial Advocate</option>
+                            <option value="Criminal Appellate Advocate">Criminal Appellate Advocate</option>
+                            <option value="Assistant Public Prosecutor">Assistant Public Prosecutor</option>
+                            <option value="Real Estate">Real Estate</option>
+                            <option value="Intellectual Property">Intellectual Property</option>
+                            <option value="AI & Technology Law">AI & Technology Law</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Professional Bio</label>
+                        <textarea id="bio" rows="4" placeholder="Tell clients about your experience, expertise, and approach to legal practice..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Profile
+                    </button>
+                    <button type="button" class="btn btn-outline" onclick="hideProfileModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:8001/api';
+        let currentProfile = null;
+        
+        // Check authentication
+        function checkAuth() {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = 'lawyer-login.html';
+                return false;
+            }
+            return true;
+        }
+
+        // API call helper
+        async function apiCall(endpoint, options = {}) {
+            const token = localStorage.getItem('access_token');
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            };
+            
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                ...defaultOptions,
+                ...options,
+                headers: { ...defaultOptions.headers, ...options.headers }
+            });
+            
+            if (response.status === 401) {
+                localStorage.removeItem('access_token');
+                window.location.href = 'lawyer-login.html';
+                return null;
+            }
+            
+            return response.json();
+        }
+
+        // Load dashboard data
+        async function loadDashboardData() {
+            try {
+                // Load user profile
+                const userProfile = await apiCall('/auth/me');
+                if (userProfile) {
+                    document.getElementById('userWelcome').textContent = 
+                        `Welcome, ${userProfile.first_name}`;
+                    document.getElementById('welcomeMessage').textContent = 
+                        `Welcome back, ${userProfile.first_name}!`;
+                }
+
+                // Try to load lawyer profile
+                try {
+                    currentProfile = await apiCall('/lawyers/profile');
+                    if (currentProfile) {
+                        populateProfileForm(currentProfile);
+                        updateAvailabilityToggle(currentProfile.availability_status);
+                    }
+                } catch (error) {
+                    // Profile doesn't exist, show alert
+                    document.getElementById('profileIncompleteAlert').style.display = 'block';
+                }
+
+                // Load pending requests
+                await loadPendingRequests();
+
+                // Load cases
+                const casesData = await apiCall('/cases/');
+                if (casesData && casesData.cases) {
+                    updateCaseStats(casesData.cases);
+                    displayRecentCases(casesData.cases);
+                }
+
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Load pending requests
+        async function loadPendingRequests() {
+            try {
+                const requestsData = await apiCall('/requests/pending');
+                if (requestsData) {
+                    displayPendingRequests(requestsData);
+                }
+            } catch (error) {
+                console.error('Error loading pending requests:', error);
+            }
+        }
+
+        // Display pending requests
+        function displayPendingRequests(requests) {
+            const container = document.getElementById('pendingRequests');
+            const countBadge = document.getElementById('pendingCount');
+            
+            countBadge.textContent = requests.length;
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>No pending requests</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = requests.map(function(request) {
+                const budgetText = request.budget_min && request.budget_max 
+                    ? `₹${request.budget_min.toLocaleString()} - ₹${request.budget_max.toLocaleString()}`
+                    : request.budget_min 
+                        ? `₹${request.budget_min.toLocaleString()}+`
+                        : 'Budget not specified';
+                
+                return `
+                    <div class="request-item">
+                        <div class="request-header">
+                            <div class="request-info">
+                                <h4>${request.title}</h4>
+                                <div class="request-meta">
+                                    <span><i class="fas fa-user"></i> ${request.client_name}</span>
+                                    <span><i class="fas fa-tag"></i> ${request.category}</span>
+                                    <span class="urgency-badge urgency-${request.urgency_level}">${request.urgency_level}</span>
+                                    <span class="budget-info"><i class="fas fa-rupee-sign"></i> ${budgetText}</span>
+                                </div>
+                            </div>
+                            <div class="request-date">
+                                ${new Date(request.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <div class="request-description">
+                            ${request.description}
+                        </div>
+                        ${request.additional_notes ? `
+                            <div class="request-notes">
+                                <strong>Additional Notes:</strong> ${request.additional_notes}
+                            </div>
+                        ` : ''}
+                        <div class="request-actions">
+                            <button class="request-btn request-btn-accept" onclick="respondToRequest('${request.id}', 'accept')">
+                                <i class="fas fa-check"></i> Accept
+                            </button>
+                            <button class="request-btn request-btn-reject" onclick="respondToRequest('${request.id}', 'reject')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Respond to request
+        async function respondToRequest(requestId, action) {
+            const message = prompt(`${action === 'accept' ? 'Accept' : 'Reject'} this request. Add a message (optional):`);
+            
+            if (message === null) return; // User cancelled
+            
+            try {
+                const response = await apiCall(`/requests/${requestId}/respond`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: action,
+                        response_message: message || null
+                    })
+                });
+                
+                if (response) {
+                    alert(`Request ${action}ed successfully!`);
+                    await loadPendingRequests(); // Refresh the list
+                    
+                    // If accepted, refresh cases too
+                    if (action === 'accept') {
+                        const casesData = await apiCall('/cases/');
+                        if (casesData && casesData.cases) {
+                            updateCaseStats(casesData.cases);
+                            displayRecentCases(casesData.cases);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error responding to request:', error);
+                alert('Error responding to request. Please try again.');
+            }
+        }
+
+        function updateCaseStats(cases) {
+            const totalCases = cases.length;
+            const activeCases = cases.filter(c => c.status === 'open' || c.status === 'in-progress').length;
+            
+            document.getElementById('totalCases').textContent = totalCases;
+            document.getElementById('activeCases').textContent = activeCases;
+            
+            if (currentProfile) {
+                document.getElementById('clientRating').textContent = currentProfile.rating.toFixed(1);
+            }
+        }
+
+        function displayRecentCases(cases) {
+            const container = document.getElementById('recentCases');
+            if (cases.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-briefcase"></i>
+                        <p>No cases assigned yet. Complete your profile to start receiving matches!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = cases.slice(0, 3).map(function(caseItem) {
+                return `
+                    <div class="case-item">
+                        <div class="case-info">
+                            <h4>${caseItem.title || 'Untitled Case'}</h4>
+                            <p class="case-date">${new Date(caseItem.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <span class="case-status status-${caseItem.status}">${caseItem.status}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Profile modal functions
+        function showProfileModal() {
+            document.getElementById('profileModal').style.display = 'block';
+        }
+
+        function hideProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+        }
+
+        function populateProfileForm(profile) {
+            if (!profile) return;
+            
+            document.getElementById('barNumber').value = profile.bar_number || '';
+            document.getElementById('barState').value = profile.bar_state || '';
+            document.getElementById('lawFirm').value = profile.law_firm || '';
+            document.getElementById('yearsExperience').value = profile.years_experience || '';
+            document.getElementById('hourlyRate').value = profile.hourly_rate || '';
+            document.getElementById('bio').value = profile.bio || '';
+            
+            // Set specializations
+            const specializationSelect = document.getElementById('specializations');
+            Array.from(specializationSelect.options).forEach(option => {
+                option.selected = profile.specializations && profile.specializations.includes(option.value);
+            });
+        }
+
+        // Profile form submission
+        document.getElementById('profileForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const specializationSelect = document.getElementById('specializations');
+            const selectedSpecializations = Array.from(specializationSelect.selectedOptions).map(option => option.value);
+            
+            const profileData = {
+                bar_number: document.getElementById('barNumber').value,
+                bar_state: document.getElementById('barState').value,
+                law_firm: document.getElementById('lawFirm').value,
+                years_experience: parseInt(document.getElementById('yearsExperience').value),
+                hourly_rate: parseFloat(document.getElementById('hourlyRate').value) || null,
+                bio: document.getElementById('bio').value,
+                specializations: selectedSpecializations
+            };
+
+            try {
+                let result;
+                if (currentProfile) {
+                    // Update existing profile
+                    result = await apiCall('/lawyers/profile', {
+                        method: 'PUT',
+                        body: JSON.stringify(profileData)
+                    });
+                } else {
+                    // Create new profile
+                    result = await apiCall('/lawyers/profile', {
+                        method: 'POST',
+                        body: JSON.stringify(profileData)
+                    });
+                }
+
+                if (result) {
+                    currentProfile = result;
+                    alert('Profile saved successfully!');
+                    hideProfileModal();
+                    document.getElementById('profileIncompleteAlert').style.display = 'none';
+                    loadDashboardData(); // Refresh data
+                }
+            } catch (error) {
+                alert('Error saving profile. Please try again.');
+            }
+        });
+
+        // Availability toggle
+        function toggleAvailability() {
+            const toggle = document.getElementById('availabilityToggle');
+            const isActive = toggle.classList.contains('active');
+            
+            if (isActive) {
+                toggle.classList.remove('active');
+                updateAvailabilityStatus('unavailable');
+            } else {
+                toggle.classList.add('active');
+                updateAvailabilityStatus('available');
+            }
+        }
+
+        function updateAvailabilityToggle(status) {
+            const toggle = document.getElementById('availabilityToggle');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (status === 'available') {
+                toggle.classList.add('active');
+                statusDot.classList.remove('unavailable');
+                statusText.textContent = 'Available';
+            } else {
+                toggle.classList.remove('active');
+                statusDot.classList.add('unavailable');
+                statusText.textContent = 'Unavailable';
+            }
+        }
+
+        async function updateAvailabilityStatus(status) {
+            if (!currentProfile) return;
+            
+            try {
+                await apiCall('/lawyers/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify({ availability_status: status })
+                });
+            } catch (error) {
+                console.error('Error updating availability:', error);
+            }
+        }
+
+        // Additional dashboard functions
+        function viewAllCases() {
+            alert('View All Cases - This would redirect to a comprehensive cases page');
+            // window.location.href = 'lawyer-cases.html';
+        }
+
+        function viewEarnings() {
+            alert('View Earnings - This would show detailed earnings and payment history');
+            // window.location.href = 'lawyer-earnings.html';
+        }
+
+        // Logout function
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('userLoggedIn');
+                window.location.href = 'index.html';
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            if (checkAuth()) {
+                loadDashboardData();
+            }
+        });
+    </script>
+
+</body>
+</html>

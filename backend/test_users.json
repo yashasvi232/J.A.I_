@@ -1,0 +1,26 @@
+[
+  {
+    "id": "client_1",
+    "email": "client@test.com",
+    "password": "password123",
+    "password_hash": "$2b$12$jgJk7BX1aSM4xH/DNrnj0ulvTeJext6OPZlyRzZ9pXf.BdqvhaEQ2",
+    "first_name": "John",
+    "last_name": "Client",
+    "phone": "+1234567890",
+    "user_type": "client",
+    "is_verified": true,
+    "is_active": true
+  },
+  {
+    "id": "lawyer_1",
+    "email": "lawyer@test.com",
+    "password": "password123",
+    "password_hash": "$2b$12$t7VW/kEqBDQnHxIHhW3CAuDgmyVbiFHZCO266P0MJzQxzGgReFA7e",
+    "first_name": "Sarah",
+    "last_name": "Attorney",
+    "phone": "+1234567891",
+    "user_type": "lawyer",
+    "is_verified": true,
+    "is_active": true
+  }
+]

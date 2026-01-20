@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lawyer Terms and Conditions - J.A.I</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .terms-container {
+            padding-top: 100px;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        
+        .terms-header {
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .terms-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .terms-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .terms-content {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            margin-bottom: 40px;
+        }
+        
+        .terms-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .terms-section:last-child {
+            border-bottom: none;
+        }
+        
+        .terms-section h2 {
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .terms-section h3 {
+            color: #1e293b;
+            font-size: 1.2rem;
+            margin: 20px 0 10px 0;
+            font-weight: 600;
+        }
+        
+        .terms-section p {
+            color: #374151;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .terms-section ul {
+            color: #374151;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        
+        .terms-section li {
+            margin-bottom: 8px;
+        }
+        
+        .last-updated {
+            color: #64748b;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+        
+        .lawyer-highlight {
+            background: linear-gradient(135deg, #e0f2fe, #b3e5fc);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary-color);
+            margin: 20px 0;
+        }
+        
+        .lawyer-highlight h3 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+        
+        .professional-standards {
+            background: #fef7ff;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #a855f7;
+            margin: 20px 0;
+        }
+        
+        .professional-standards h3 {
+            color: #a855f7;
+            margin-top: 0;
+        }
+        
+        .dashboard-cta {
+            background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .dashboard-cta h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.5rem;
+        }
+        
+        .dashboard-cta p {
+            margin: 0 0 20px 0;
+            opacity: 0.9;
+        }
+        
+        .cta-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .cta-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="Logo.jpeg" alt="J.A.I" class="logo-img">
+            </a>
+            <ul class="nav-links">
+                <li><a href="lawyer-dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+            </ul>
+            <div class="nav-auth" id="navAuth">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+    </nav>
+
+    <div class="terms-container">
+        <div class="terms-header">
+            <div class="container">
+                <h1><i class="fas fa-balance-scale"></i> Lawyer Terms & Conditions</h1>
+                <p>Professional standards and responsibilities for J.A.I legal practitioners</p>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="terms-content">
+                <p class="last-updated">Last updated: January 11, 2026</p>
+
+                <div class="lawyer-highlight">
+                    <h3><i class="fas fa-gavel"></i> Professional Legal Practice</h3>
+                    <p>These terms outline your professional responsibilities and benefits as a verified legal practitioner on the J.A.I platform.</p>
+                </div>
+
+                <div class="terms-section">
+                    <h2>1. Lawyer Eligibility and Verification</h2>
+                    <p>To practice on J.A.I, you must:</p>
+                    <ul>
+                        <li><strong>Active Bar License:</strong> Maintain a current, valid license to practice law in your jurisdiction</li>
+                        <li><strong>Professional Standing:</strong> Be in good standing with your local bar association</li>
+                        <li><strong>Verification Process:</strong> Complete our comprehensive verification including bar number, credentials, and background check</li>
+                        <li><strong>Continuing Education:</strong> Maintain required continuing legal education (CLE) credits</li>
+                        <li><strong>Professional Insurance:</strong> Carry appropriate malpractice insurance coverage</li>
+                    </ul>
+                </div>
+
+                <div class="professional-standards">
+                    <h3><i class="fas fa-certificate"></i> Professional Ethics Compliance</h3>
+                    <p>All lawyers must adhere to their jurisdiction's professional conduct rules and maintain the highest ethical standards in client representation.</p>
+                </div>
+
+                <div class="terms-section">
+                    <h2>2. Your Professional Responsibilities</h2>
+                    <ul>
+                        <li><strong>Competent Representation:</strong> Provide competent legal services within your areas of expertise</li>
+                        <li><strong>Client Confidentiality:</strong> Maintain strict attorney-client privilege and confidentiality</li>
+                        <li><strong>Timely Communication:</strong> Respond to client inquiries within 24-48 hours</li>
+                        <li><strong>Professional Conduct:</strong> Adhere to all applicable professional conduct rules</li>
+                        <li><strong>Accurate Profile:</strong> Keep your profile, specializations, and credentials current</li>
+                        <li><strong>Quality Service:</strong> Provide professional, high-quality legal services</li>
+                        <li><strong>Fee Transparency:</strong> Clearly communicate fee structures and billing practices</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>3. Platform Benefits for Lawyers</h2>
+                    <p>J.A.I provides qualified lawyers with:</p>
+                    <ul>
+                        <li><strong>Client Matching:</strong> AI-powered matching with clients who need your expertise</li>
+                        <li><strong>Practice Management:</strong> Tools to manage cases, appointments, and client communications</li>
+                        <li><strong>Secure Platform:</strong> Encrypted communication and document sharing</li>
+                        <li><strong>Payment Processing:</strong> Secure payment collection and processing</li>
+                        <li><strong>Professional Profile:</strong> Showcase your expertise, experience, and credentials</li>
+                        <li><strong>Marketing Support:</strong> Increased visibility to potential clients</li>
+                        <li><strong>Administrative Tools:</strong> Streamlined case and client management</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>4. Fee Structure and Payments</h2>
+                    <p><strong>For Lawyers:</strong></p>
+                    <ul>
+                        <li><strong>Platform Fee:</strong> 15% commission on successful client engagements</li>
+                        <li><strong>No Upfront Costs:</strong> No membership fees or setup charges</li>
+                        <li><strong>Direct Fee Setting:</strong> You set your own hourly rates and fee structures</li>
+                        <li><strong>Secure Payments:</strong> All payments processed securely through the platform</li>
+                        <li><strong>Monthly Payouts:</strong> Regular payment processing and disbursement</li>
+                        <li><strong>Transparent Billing:</strong> Clear breakdown of platform fees and earnings</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>5. Professional Standards and Quality</h2>
+                    <ul>
+                        <li><strong>Response Time:</strong> Maintain professional response times to client inquiries</li>
+                        <li><strong>Case Management:</strong> Use platform tools to keep clients informed of case progress</li>
+                        <li><strong>Professional Communication:</strong> Maintain professional tone and conduct in all interactions</li>
+                        <li><strong>Specialization Accuracy:</strong> Only accept cases within your areas of competence</li>
+                        <li><strong>Conflict Checking:</strong> Perform appropriate conflict of interest checks</li>
+                        <li><strong>Quality Metrics:</strong> Maintain satisfactory client ratings and feedback</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>6. Platform Policies and Compliance</h2>
+                    <ul>
+                        <li><strong>Advertising Rules:</strong> Comply with legal advertising and solicitation rules</li>
+                        <li><strong>Data Protection:</strong> Follow all applicable privacy and data protection laws</li>
+                        <li><strong>Professional Liability:</strong> Maintain appropriate professional liability insurance</li>
+                        <li><strong>Regulatory Compliance:</strong> Adhere to all local, state, and federal legal practice regulations</li>
+                        <li><strong>Platform Guidelines:</strong> Follow J.A.I community guidelines and terms of service</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>7. Account Management and Termination</h2>
+                    <ul>
+                        <li><strong>Profile Updates:</strong> Keep your professional information current and accurate</li>
+                        <li><strong>Availability Status:</strong> Manage your availability for new cases</li>
+                        <li><strong>Voluntary Termination:</strong> You may deactivate your account at any time</li>
+                        <li><strong>Ongoing Obligations:</strong> Existing client relationships continue beyond platform use</li>
+                        <li><strong>Professional Records:</strong> Maintain appropriate case records and documentation</li>
+                    </ul>
+                </div>
+
+                <div class="terms-section">
+                    <h2>8. Professional Support and Resources</h2>
+                    <p>For lawyer support and professional assistance:</p>
+                    <p><strong>Email:</strong> lawyer-support@jai-platform.com<br>
+                    <strong>Phone:</strong> 1-800-JAI-LAWYER<br>
+                    <strong>Professional Portal:</strong> Available through your dashboard<br>
+                    <strong>Address:</strong> 123 AI Legal Plaza, Suite 456, Tech City, TC 12345</p>
+                </div>
+            </div>
+
+            <div class="dashboard-cta">
+                <h3><i class="fas fa-briefcase"></i> Manage Your Practice</h3>
+                <p>Access your lawyer dashboard to manage cases, update your profile, and connect with clients.</p>
+                <a href="lawyer-dashboard.html" class="cta-btn">
+                    <i class="fas fa-arrow-right"></i> Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in and update navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const navAuth = document.getElementById('navAuth');
+            const isLoggedIn = localStorage.getItem('userLoggedIn') === 'true';
+            const userType = localStorage.getItem('userType');
+            
+            if (isLoggedIn && userType === 'lawyer') {
+                navAuth.innerHTML = `
+                    <span>Welcome, Counselor</span>
+                    <a href="#" class="login-link" onclick="logout()">Logout</a>
+                `;
+            } else {
+                navAuth.innerHTML = `
+                    <a href="lawyer-login.html" class="login-link">Login</a>
+                `;
+            }
+        });
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('userType');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+
+</body>
+</html>

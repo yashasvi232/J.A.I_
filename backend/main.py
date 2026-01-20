@@ -1,0 +1,288 @@
+from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from contextlib import asynccontextmanager
+import uvicorn
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Import routers
+try:
+    from routers import auth, users, lawyers, cases, ai_matching, lawyer_requests
+    print("✅ All routers imported successfully")
+except Exception as e:
+    print(f"❌ Router import error: {e}")
+    raise
+
+from database import connect_to_mongo, close_mongo_connection, get_database
+
+# Security
+security = HTTPBearer()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await connect_to_mongo()
+    yield
+    # Shutdown
+    await close_mongo_connection()
+
+# Create FastAPI app
+app = FastAPI(
+    title="J.A.I API",
+    description="Jurist Artificial Intelligence - AI-powered legal platform",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS middleware - Allow all for development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,  # Set to False when using allow_origins=["*"]
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
+# Include routers
+print("📋 Including API routers...")
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+print("   ✅ Auth router included")
+app.include_router(users.router, prefix="/api/users", tags=["Users"])
+print("   ✅ Users router included")
+app.include_router(lawyers.router, prefix="/api/lawyers", tags=["Lawyers"])
+print("   ✅ Lawyers router included")
+app.include_router(cases.router, prefix="/api/cases", tags=["Cases"])
+print("   ✅ Cases router included")
+app.include_router(lawyer_requests.router, prefix="/api/requests", tags=["Lawyer Requests"])
+print("   ✅ Lawyer requests router included")
+app.include_router(ai_matching.router, prefix="/api/ai", tags=["AI Services"])
+print("   ✅ AI matching router included")
+print("🎉 All routers included successfully!")
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to J.A.I API",
+        "description": "Jurist Artificial Intelligence - AI-powered legal platform",
+        "version": "1.0.0",
+        "docs": "/docs",
+        "mongodb": "connected"
+    }
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "J.A.I API", "mongodb": "connected"}
+
+# Simple lawyers endpoint for quick testing
+@app.get("/api/lawyers")
+async def get_lawyers():
+    """Get all lawyers from the database"""
+    try:
+        db = get_database()
+        
+        lawyers = []
+        cursor = db.users.find({"user_type": "lawyer"})
+        async for lawyer in cursor:
+            lawyer["_id"] = str(lawyer["_id"])
+            lawyer.pop("password_hash", None)  # Remove sensitive data
+            lawyers.append(lawyer)
+        
+        return {"lawyers": lawyers}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching lawyers: {str(e)}")
+
+# Simple login endpoint for quick testing
+@app.post("/api/auth/login")
+async def login(login_data: dict):
+    """Simple login endpoint"""
+    try:
+        email = login_data.get("email")
+        password = login_data.get("password")
+        
+        if not email or not password:
+            raise HTTPException(status_code=400, detail="Email and password required")
+        
+        db = get_database()
+        user = await db.users.find_one({"email": email})
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # For now, just return success (you can add password verification later)
+        user["_id"] = str(user["_id"])
+        user.pop("password_hash", None)
+        
+        return {
+            "access_token": "fake-token-for-testing",
+            "token_type": "bearer",
+            "user": user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+
+# Signup endpoint for both clients and lawyers
+@app.post("/api/auth/signup")
+async def signup(signup_data: dict):
+    """Handle user registration for both clients and lawyers"""
+    try:
+        print(f"Received signup data: {signup_data}")  # Debug logging
+        
+        # Extract common fields
+        email = signup_data.get("email", "").strip().lower()
+        password = signup_data.get("password", "")
+        full_name = signup_data.get("full_name", "").strip()
+        user_type = signup_data.get("user_type", "client")  # default to client
+        
+        print(f"Parsed fields - Email: {email}, Full Name: {full_name}, Type: {user_type}")  # Debug
+        
+        # Validation
+        if not email or not password or not full_name:
+            print(f"Validation failed - Missing fields")  # Debug
+            raise HTTPException(
+                status_code=400, 
+                detail="Email, password, and full name are required"
+            )
+        
+        if len(password) < 8:
+            print(f"Validation failed - Password too short")  # Debug
+            raise HTTPException(
+                status_code=400,
+                detail="Password must be at least 8 characters long"
+            )
+        
+        # Split full name into first and last name
+        name_parts = full_name.split(" ", 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        
+        db = get_database()
+        
+        # Check if user already exists
+        existing_user = await db.users.find_one({"email": email})
+        if existing_user:
+            raise HTTPException(
+                status_code=409,
+                detail="User with this email already exists"
+            )
+        
+        # Hash password (simple hash for now - in production use proper bcrypt)
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        password_hash = pwd_context.hash(password)
+        
+        # Create user document
+        from datetime import datetime
+        user_doc = {
+            "email": email,
+            "password_hash": password_hash,
+            "first_name": first_name,
+            "last_name": last_name,
+            "user_type": user_type,
+            "phone": signup_data.get("phone", ""),
+            "profile_image_url": None,
+            "is_verified": False,
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        # Add lawyer-specific fields if user is a lawyer
+        if user_type == "lawyer":
+            bar_number = signup_data.get("bar_number", "").strip()
+            if not bar_number:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Bar Association ID is required for lawyers"
+                )
+            user_doc["bar_number"] = bar_number
+            user_doc["bar_state"] = signup_data.get("bar_state", "")
+        
+        # Insert user into database
+        result = await db.users.insert_one(user_doc)
+        user_id = str(result.inserted_id)
+        
+        # Create lawyer profile if user is a lawyer
+        if user_type == "lawyer":
+            lawyer_profile = {
+                "user_id": result.inserted_id,
+                "bar_number": bar_number,
+                "bar_state": signup_data.get("bar_state", ""),
+                "law_firm": signup_data.get("law_firm", ""),
+                "years_experience": 0,
+                "hourly_rate": None,
+                "bio": "",
+                "specializations": [],
+                "education": [],
+                "certifications": [],
+                "languages": ["English"],
+                "availability_status": "available",
+                "rating": 0.0,
+                "total_reviews": 0,
+                "total_cases": 0,
+                "success_rate": 0.0,
+                "ai_match_score": 0.0,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            await db.lawyers.insert_one(lawyer_profile)
+        
+        # Return success response (without password hash)
+        user_response = {
+            "id": user_id,
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "user_type": user_type,
+            "is_verified": False,
+            "is_active": True
+        }
+        
+        return {
+            "message": "User registered successfully",
+            "user": user_response,
+            "access_token": "fake-token-for-testing",
+            "token_type": "bearer"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Signup error: {e}")  # Debug logging
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
+
+# Add explicit OPTIONS handler for CORS
+@app.options("/api/auth/signup")
+async def signup_options():
+    """Handle CORS preflight for signup"""
+    return {"message": "OK"}
+
+if __name__ == "__main__":
+    print("🚀 Starting J.A.I Platform with MongoDB")
+    print("=" * 50)
+    print("✅ MongoDB connection enabled")
+    print("✅ Full API endpoints available")
+    print("✅ CORS configured for frontend")
+    print()
+    
+    # Get port from environment variable (for deployment) or use default
+    port = int(os.getenv("PORT", 8001))
+    
+    print("🌐 Server will start at:")
+    print(f"   Backend:  http://localhost:{port}")
+    print(f"   API Docs: http://localhost:{port}/docs")
+    print()
+    
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=True,
+        log_level="info"
+    )

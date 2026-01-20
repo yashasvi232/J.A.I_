@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>J.A.I - Search Results</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.4rem;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #64748b;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid #f1f5f9;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                padding: 20px;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <img src="Logo.jpeg" alt="J.A.I" class="logo-img">
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="lawyers.html">Find Lawyers</a></li>
+                <li><a href="client-terms.html">Terms</a></li>
+            </ul>
+            <div class="search-bar-small">
+                <input type="text" id="searchInput" placeholder="Search name or specialty..." onkeyup="filterLawyers()">
+            </div>
+        </div>
+    </nav>
+
+    <div class="container main-layout">
+        
+        <aside class="sidebar">
+            <div class="filter-group">
+    <h3>Category of Help</h3>
+    <label>
+        <input type="checkbox" class="cat-check" value="Property Law" onclick="filterLawyers()"> Property Law
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Family Law" onclick="filterLawyers()"> Family Law
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Corporate Law" onclick="filterLawyers()"> Corporate Law
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Contract and Agreement Law" onclick="filterLawyers()"> Contract and Agreement Law
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Consumer Protection Law" onclick="filterLawyers()"> Consumer Protection Law
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Labour and Employment Law" onclick="filterLawyers()"> Labour and Employment Law
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="IPR Law" onclick="filterLawyers()"> IPR Law
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Criminal Defense" onclick="filterLawyers()"> Criminal Defense
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Public Prosecutor" onclick="filterLawyers()"> Public Prosecutor
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Criminal Trial Advocate" onclick="filterLawyers()"> Criminal Trial Advocate
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Criminal Appellate Advocate" onclick="filterLawyers()"> Criminal Appellate Advocate
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Assistant Public Prosecutor" onclick="filterLawyers()"> Assistant Public Prosecutor
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Real Estate" onclick="filterLawyers()"> Real Estate
+    </label>
+    <label>
+        <input type="checkbox" class="cat-check" value="Intellectual Property" onclick="filterLawyers()"> Intellectual Property
+    </label>
+</div>
+
+            <div class="filter-group">
+                <h3>Preferences</h3>
+                <label>
+                    <input type="checkbox" id="verifiedCheck" onclick="filterLawyers()"> Verified Only
+                </label>
+                <label>
+                    <input type="checkbox" id="expCheck" onclick="filterLawyers()"> 10+ Years Exp.
+                </label>
+            </div>
+        </aside>
+
+        <main class="results-list" id="lawyer-container">
+            </main>
+    </div>
+
+    <script src="lawyers_data.js"></script>
+    <script src="list.js"></script>
+
+</body>
+</html>
