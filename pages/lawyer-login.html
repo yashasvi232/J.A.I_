@@ -126,7 +126,11 @@
             const password = loginForm.querySelector('input[type="password"]').value;
             
             // API call to backend
-            fetch('http://localhost:8001/api/auth/login', {
+            const API_BASE = window.location.hostname === 'localhost' ? 
+                'http://localhost:8001/api' : 
+                'https://jai-production-5c01.up.railway.app/api';
+                
+            fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -195,7 +199,11 @@
             };
 
             // API call to backend
-            fetch('http://localhost:8001/api/auth/signup', {
+            const API_BASE = window.location.hostname === 'localhost' ? 
+                'http://localhost:8001/api' : 
+                'https://jai-production-5c01.up.railway.app/api';
+                
+            fetch(`${API_BASE}/auth/signup`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
