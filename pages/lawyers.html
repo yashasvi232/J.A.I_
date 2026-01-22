@@ -201,6 +201,113 @@
             </main>
     </div>
 
+    <script>
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:8001/api';
+        
+        // Load lawyers from backend
+        async function loadLawyers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/lawyers/all`);
+                const data = await response.json();
+                
+                if (data.lawyers) {
+                    displayLawyers(data.lawyers);
+                }
+            } catch (error) {
+                console.error('Error loading lawyers:', error);
+            }
+        }
+        
+        function displayLawyers(lawyers) {
+            const container = document.getElementById('lawyersList') || document.querySelector('.lawyers-grid');
+            if (!container) return;
+            
+            container.innerHTML = lawyers.map(lawyer => `
+                <div class="lawyer-card">
+                    <div class="lawyer-header">
+                        <img src="https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 99)}.jpg" 
+                             alt="${lawyer.first_name} ${lawyer.last_name}" class="lawyer-avatar">
+                        <div class="lawyer-info">
+                            <h3>${lawyer.first_name} ${lawyer.last_name}</h3>
+                            <p class="lawyer-firm">${lawyer.law_firm || 'Independent Practice'}</p>
+                            <div class="lawyer-rating">
+                                <span class="stars">⭐ ${lawyer.rating}/5</span>
+                                <span class="experience">${lawyer.years_experience} years exp.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lawyer-specialties">
+                        ${lawyer.specializations.map(spec => `<span class="specialty-tag">${spec}</span>`).join('')}
+                    </div>
+                    <div class="lawyer-bio">
+                        <p>${lawyer.bio || 'Experienced legal professional ready to help with your case.'}</p>
+                    </div>
+                    <div class="lawyer-actions">
+                        <button class="btn btn-primary" onclick="sendRequest('${lawyer.id}', '${lawyer.first_name} ${lawyer.last_name}')">
+                            <i class="fas fa-paper-plane"></i> Send Request
+                        </button>
+                        <span class="hourly-rate">${lawyer.hourly_rate ? '₹' + lawyer.hourly_rate + '/hr' : 'Rate on request'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Send request function
+        async function sendRequest(lawyerId, lawyerName) {
+            const title = prompt(`Send request to ${lawyerName}.\n\nCase Title:`);
+            if (!title) return;
+            
+            const description = prompt('Case Description:');
+            if (!description) return;
+            
+            const category = prompt('Category:') || 'General';
+            
+            try {
+                // Get current user (you'll need to implement auth check)
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    alert('Please login first');
+                    window.location.href = 'client-login.html';
+                    return;
+                }
+                
+                const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const user = await userResponse.json();
+                
+                const requestData = {
+                    client_id: user.id,
+                    lawyer_id: lawyerId,
+                    title: title,
+                    description: description,
+                    category: category,
+                    urgency_level: 'medium'
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/requests/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (response.ok) {
+                    alert('Request sent successfully!');
+                } else {
+                    alert('Error sending request');
+                }
+            } catch (error) {
+                alert('Error sending request');
+            }
+        }
+        
+        // Load lawyers on page load
+        document.addEventListener('DOMContentLoaded', loadLawyers);
+    </script>
     <script src="lawyers_data.js"></script>
     <script src="list.js"></script>
 

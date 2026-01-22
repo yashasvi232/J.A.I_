@@ -749,6 +749,10 @@
                         </div>
                         <div class="lawyer-rating">
                             ⭐ ${lawyer.rating || 0}/5
+                            <button onclick="sendRequestToLawyer('${lawyer.id}', '${lawyer.first_name} ${lawyer.last_name}')" 
+                                    style="margin-left: 10px; padding: 5px 10px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                Send Request
+                            </button>
                         </div>
                     </div>
                 `;
@@ -868,12 +872,48 @@
         // Load recommended lawyers (fallback)
         async function loadRecommendedLawyers() {
             try {
-                const lawyersData = await apiCall('/lawyers');
+                const lawyersData = await apiCall('/lawyers/all');
                 if (lawyersData && lawyersData.lawyers) {
                     displayRecommendedLawyers(lawyersData.lawyers.slice(0, 3));
                 }
             } catch (error) {
                 console.error('Error loading recommended lawyers:', error);
+            }
+        }
+
+        // Send request to lawyer
+        async function sendRequestToLawyer(lawyerId, lawyerName) {
+            const title = prompt(`Send request to ${lawyerName}.\n\nCase Title:`);
+            if (!title) return;
+            
+            const description = prompt('Case Description:');
+            if (!description) return;
+            
+            const category = prompt('Category (e.g., Family Law, Corporate Law):') || 'General';
+            
+            try {
+                const userProfile = await apiCall('/auth/me');
+                
+                const requestData = {
+                    client_id: userProfile.id,
+                    lawyer_id: lawyerId,
+                    title: title,
+                    description: description,
+                    category: category,
+                    urgency_level: 'medium'
+                };
+                
+                const result = await apiCall('/requests/send', {
+                    method: 'POST',
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (result) {
+                    alert('Request sent successfully!');
+                    loadDashboardData(); // Refresh data
+                }
+            } catch (error) {
+                alert('Error sending request. Please try again.');
             }
         }
 
