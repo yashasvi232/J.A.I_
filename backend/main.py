@@ -209,7 +209,7 @@ async def login(login_data: dict):
 async def signup(signup_data: dict):
     """Handle user registration for both clients and lawyers"""
     try:
-        print(f"Received signup data: {signup_data}")  # Debug logging
+        print(f"🔍 Received signup data: {signup_data}")  # Debug logging
         
         # Extract common fields
         email = signup_data.get("email", "").strip().lower()
@@ -217,18 +217,18 @@ async def signup(signup_data: dict):
         full_name = signup_data.get("full_name", "").strip()
         user_type = signup_data.get("user_type", "client")  # default to client
         
-        print(f"Parsed fields - Email: {email}, Full Name: {full_name}, Type: {user_type}")  # Debug
+        print(f"📋 Parsed fields - Email: {email}, Full Name: {full_name}, Type: {user_type}")  # Debug
         
         # Validation
         if not email or not password or not full_name:
-            print(f"Validation failed - Missing fields")  # Debug
+            print(f"❌ Validation failed - Missing fields")  # Debug
             raise HTTPException(
                 status_code=400, 
                 detail="Email, password, and full name are required"
             )
         
         if len(password) < 8:
-            print(f"Validation failed - Password too short")  # Debug
+            print(f"❌ Validation failed - Password too short")  # Debug
             raise HTTPException(
                 status_code=400,
                 detail="Password must be at least 8 characters long"
@@ -240,10 +240,14 @@ async def signup(signup_data: dict):
         last_name = name_parts[1] if len(name_parts) > 1 else ""
         
         db = get_database()
+        if db is None:
+            print("❌ Database connection failed")
+            raise HTTPException(status_code=500, detail="Database connection failed")
         
         # Check if user already exists
         existing_user = await db.users.find_one({"email": email})
         if existing_user:
+            print(f"❌ User already exists: {email}")
             raise HTTPException(
                 status_code=409,
                 detail="User with this email already exists"
@@ -274,6 +278,7 @@ async def signup(signup_data: dict):
         if user_type == "lawyer":
             bar_number = signup_data.get("bar_number", "").strip()
             if not bar_number:
+                print(f"❌ Bar number missing for lawyer")
                 raise HTTPException(
                     status_code=400,
                     detail="Bar Association ID is required for lawyers"
@@ -284,11 +289,14 @@ async def signup(signup_data: dict):
             user_doc["specializations"] = signup_data.get("specializations", [])
         
         # Insert user into database
+        print(f"💾 Inserting user into database...")
         result = await db.users.insert_one(user_doc)
         user_id = str(result.inserted_id)
+        print(f"✅ User created with ID: {user_id}")
         
         # Create lawyer profile if user is a lawyer
         if user_type == "lawyer":
+            print(f"👨‍⚖️ Creating lawyer profile...")
             lawyer_profile = {
                 "user_id": result.inserted_id,
                 "bar_number": bar_number,
@@ -311,6 +319,7 @@ async def signup(signup_data: dict):
                 "updated_at": datetime.utcnow()
             }
             await db.lawyers.insert_one(lawyer_profile)
+            print(f"✅ Lawyer profile created")
         
         # Return success response (without password hash)
         user_response = {
@@ -323,6 +332,7 @@ async def signup(signup_data: dict):
             "is_active": True
         }
         
+        print(f"🎉 Registration successful for: {email}")
         return {
             "message": "User registered successfully",
             "user": user_response,
@@ -333,7 +343,7 @@ async def signup(signup_data: dict):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Signup error: {e}")  # Debug logging
+        print(f"💥 Signup error: {e}")  # Debug logging
         raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
 
 # Add explicit OPTIONS handler for CORS

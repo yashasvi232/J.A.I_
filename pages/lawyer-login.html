@@ -68,19 +68,23 @@
                     <h3>Apply to Join</h3>
                     <div class="input-group">
                         <label>Full Name</label>
-                        <input type="text" placeholder="Sarah Jenkins, Esq." required>
+                        <input type="text" name="full_name" placeholder="Sarah Jenkins, Esq." required>
                     </div>
                     <div class="input-group">
                         <label>Bar Association ID</label>
-                        <input type="text" placeholder="State Bar Number" required>
+                        <input type="text" name="bar_number" placeholder="State Bar Number" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Bar State</label>
+                        <input type="text" name="bar_state" placeholder="e.g., California" required>
                     </div>
                     <div class="input-group">
                         <label>Work Email</label>
-                        <input type="email" placeholder="name@firm.com" required>
+                        <input type="email" name="email" placeholder="name@firm.com" required>
                     </div>
                     <div class="input-group">
                         <label>Create Password</label>
-                        <input type="password" placeholder="Strong password" required>
+                        <input type="password" name="password" placeholder="Strong password" required>
                     </div>
                     <button type="submit" class="btn btn-primary btn-block">Submit Application</button>
                     
@@ -184,17 +188,14 @@
             btn.classList.add('btn-loading');
             btn.disabled = true;
             
-            // Get form data
-            const fullName = signupForm.querySelector('input[type="text"]').value;
-            const barNumber = signupForm.querySelectorAll('input[type="text"]')[1].value;
-            const email = signupForm.querySelector('input[type="email"]').value;
-            const password = signupForm.querySelector('input[type="password"]').value;
-            
+            // Get form data using FormData
+            const formData = new FormData(signupForm);
             const userData = {
-                email: email,
-                password: password,
-                full_name: fullName,
-                bar_number: barNumber,
+                email: formData.get('email'),
+                password: formData.get('password'),
+                full_name: formData.get('full_name'),
+                bar_number: formData.get('bar_number'),
+                bar_state: formData.get('bar_state'),
                 user_type: 'lawyer'
             };
 
@@ -210,9 +211,17 @@
                 },
                 body: JSON.stringify(userData)
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.user) {
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json().then(data => ({
+                    status: response.status,
+                    data: data
+                }));
+            })
+            .then(({status, data}) => {
+                console.log('Response data:', data);
+                
+                if (status === 200 && data.user) {
                     // Store token and user info
                     localStorage.setItem('access_token', data.access_token);
                     localStorage.setItem('userLoggedIn', 'true');
@@ -225,20 +234,26 @@
                         window.location.href = "lawyer-dashboard.html";
                     }, 1000);
                 } else {
-                    throw new Error(data.detail || 'Registration failed');
+                    throw new Error(`${data.detail || 'Registration failed'} (Status: ${status})`);
                 }
             })
             .catch(error => {
                 console.error('Registration error:', error);
-                btn.innerHTML = '<i class="fas fa-exclamation"></i> Registration Failed';
+                
+                // Show detailed error message
+                const errorMsg = error.message || 'Registration failed';
+                btn.innerHTML = `<i class="fas fa-exclamation"></i> ${errorMsg.length > 30 ? 'Registration Failed' : errorMsg}`;
                 btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                
+                // Also show alert with full error
+                alert(`Registration failed: ${errorMsg}`);
                 
                 setTimeout(() => {
                     btn.innerHTML = originalText;
                     btn.classList.remove('btn-loading');
                     btn.disabled = false;
                     btn.style.background = '';
-                }, 2000);
+                }, 3000);
             });
         });
     </script>
