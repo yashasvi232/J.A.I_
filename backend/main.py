@@ -386,10 +386,10 @@ async def send_lawyer_request(request_data: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error sending request: {str(e)}")
 
-# Get lawyers with profiles
-@app.get("/api/lawyers/all")
-async def get_all_lawyers():
-    """Get all lawyers with their profiles"""
+# Get lawyers with profiles - dedicated endpoint to avoid router conflicts
+@app.get("/api/public/lawyers")
+async def get_all_lawyers_public():
+    """Get all lawyers with their profiles - public endpoint"""
     try:
         db = get_database()
         

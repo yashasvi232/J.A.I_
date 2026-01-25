@@ -70,6 +70,8 @@ async def create_lawyer_request(
         updated_at=created_request["updated_at"],
         response_message=created_request.get("response_message"),
         responded_at=created_request.get("responded_at"),
+        meeting_slots=created_request.get("meeting_slots"),
+        selected_meeting=created_request.get("selected_meeting"),
         client_name=f"{client['first_name']} {client['last_name']}",
         client_email=client["email"],
         lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}",
@@ -111,6 +113,8 @@ async def get_user_requests(current_user: UserInDB = Depends(get_current_user)):
                 updated_at=req["updated_at"],
                 response_message=req.get("response_message"),
                 responded_at=req.get("responded_at"),
+                meeting_slots=req.get("meeting_slots"),
+                selected_meeting=req.get("selected_meeting"),
                 client_name=f"{client['first_name']} {client['last_name']}",
                 client_email=client["email"],
                 lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,
@@ -146,6 +150,8 @@ async def get_user_requests(current_user: UserInDB = Depends(get_current_user)):
                 updated_at=req["updated_at"],
                 response_message=req.get("response_message"),
                 responded_at=req.get("responded_at"),
+                meeting_slots=req.get("meeting_slots"),
+                selected_meeting=req.get("selected_meeting"),
                 client_name=f"{client['first_name']} {client['last_name']}" if client else "Unknown Client",
                 client_email=client["email"] if client else "",
                 lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,
@@ -196,6 +202,8 @@ async def get_pending_requests(current_user: UserInDB = Depends(get_current_user
             updated_at=req["updated_at"],
             response_message=req.get("response_message"),
             responded_at=req.get("responded_at"),
+            meeting_slots=req.get("meeting_slots"),
+            selected_meeting=req.get("selected_meeting"),
             client_name=f"{client['first_name']} {client['last_name']}" if client else "Unknown Client",
             client_email=client["email"] if client else "",
             lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,
@@ -253,6 +261,19 @@ async def respond_to_request(
         "responded_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
+    
+    # Add meeting slots if accepting and slots are provided
+    if action_data.action == "accept" and action_data.meeting_slots:
+        meeting_slots = []
+        for slot in action_data.meeting_slots:
+            meeting_slots.append({
+                "date": slot.date,
+                "time": slot.time,
+                "duration": slot.duration,
+                "meeting_type": slot.meeting_type,
+                "available": True
+            })
+        update_data["meeting_slots"] = meeting_slots
     
     await db.lawyer_requests.update_one(
         {"_id": ObjectId(request_id)},
@@ -329,6 +350,8 @@ async def get_request_details(
         updated_at=request_doc["updated_at"],
         response_message=request_doc.get("response_message"),
         responded_at=request_doc.get("responded_at"),
+        meeting_slots=request_doc.get("meeting_slots"),
+        selected_meeting=request_doc.get("selected_meeting"),
         client_name=f"{client['first_name']} {client['last_name']}" if client else "Unknown Client",
         client_email=client["email"] if client else "",
         lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,
@@ -336,3 +359,60 @@ async def get_request_details(
     )
     
     return response_data
+
+@router.post("/{request_id}/select-meeting")
+async def select_meeting_slot(
+    request_id: str,
+    meeting_data: dict,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """Select a meeting slot for an accepted request (client only)"""
+    if current_user.user_type != "client":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only clients can select meeting slots"
+        )
+    
+    db = get_database()
+    
+    # Find the request
+    request_doc = await db.lawyer_requests.find_one({
+        "_id": ObjectId(request_id),
+        "client_id": ObjectId(current_user.id)
+    })
+    
+    if not request_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Request not found"
+        )
+    
+    if request_doc["status"] != RequestStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Can only select meeting slots for accepted requests"
+        )
+    
+    # Update the selected meeting slot
+    selected_meeting = {
+        "date": meeting_data.get("date"),
+        "time": meeting_data.get("time"),
+        "duration": meeting_data.get("duration", 60),
+        "meeting_type": meeting_data.get("meeting_type", "online"),
+        "selected_at": datetime.utcnow()
+    }
+    
+    await db.lawyer_requests.update_one(
+        {"_id": ObjectId(request_id)},
+        {
+            "$set": {
+                "selected_meeting": selected_meeting,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+    
+    return {
+        "message": "Meeting slot selected successfully",
+        "selected_meeting": selected_meeting
+    }

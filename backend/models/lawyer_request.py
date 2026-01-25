@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
 from bson import ObjectId
@@ -55,6 +55,8 @@ class LawyerRequestInDB(LawyerRequestBase):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     response_message: Optional[str] = None  # Lawyer's response when accepting/rejecting
     responded_at: Optional[datetime] = None
+    meeting_slots: Optional[List[Dict[str, Any]]] = None  # Available meeting times
+    selected_meeting: Optional[Dict[str, Any]] = None  # Client's selected meeting slot
 
     class Config:
         allow_population_by_field_name = True
@@ -77,6 +79,8 @@ class LawyerRequestResponse(BaseModel):
     updated_at: datetime
     response_message: Optional[str]
     responded_at: Optional[datetime]
+    meeting_slots: Optional[List[Dict[str, Any]]] = None  # Available meeting times
+    selected_meeting: Optional[Dict[str, Any]] = None  # Client's selected meeting slot
     
     # Client information
     client_name: str
@@ -86,9 +90,16 @@ class LawyerRequestResponse(BaseModel):
     lawyer_name: Optional[str] = None
     lawyer_email: Optional[str] = None
 
+class MeetingSlot(BaseModel):
+    date: str  # Format: "2024-01-25"
+    time: str  # Format: "10:00 AM"
+    duration: int = 60  # Duration in minutes
+    meeting_type: str = "online"  # "online", "in-person", "phone"
+
 class RequestActionRequest(BaseModel):
     action: str  # "accept" or "reject"
     response_message: Optional[str] = Field(None, max_length=500)
+    meeting_slots: Optional[List[MeetingSlot]] = None  # Available meeting times when accepting
 
 class RequestUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)

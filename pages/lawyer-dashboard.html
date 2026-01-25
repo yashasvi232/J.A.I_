@@ -989,36 +989,177 @@
 
         // Respond to request
         async function respondToRequest(requestId, action) {
-            const message = prompt(`${action === 'accept' ? 'Accept' : 'Reject'} this request. Add a message (optional):`);
+            // Create modal for response with meeting slots if accepting
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">${action === 'accept' ? 'Accept Request' : 'Reject Request'}</h3>
+                        <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="responseForm">
+                        <div class="form-group">
+                            <label>Response Message:</label>
+                            <textarea id="responseMessage" rows="3" placeholder="Enter your response..." required>${action === 'accept' ? 'Thank you for your request. I would be happy to help with your case.' : 'Thank you for your interest. Unfortunately, I cannot take on this case at this time.'}</textarea>
+                        </div>
+                        
+                        ${action === 'accept' ? `
+                        <div class="form-group">
+                            <label>Available Meeting Times:</label>
+                            <div id="meetingSlots">
+                                <div class="meeting-slot">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                        <input type="date" class="slot-date" required min="${new Date().toISOString().split('T')[0]}">
+                                        <select class="slot-time" required>
+                                            <option value="">Select Time</option>
+                                            <option value="09:00 AM">09:00 AM</option>
+                                            <option value="10:00 AM">10:00 AM</option>
+                                            <option value="11:00 AM">11:00 AM</option>
+                                            <option value="12:00 PM">12:00 PM</option>
+                                            <option value="01:00 PM">01:00 PM</option>
+                                            <option value="02:00 PM">02:00 PM</option>
+                                            <option value="03:00 PM">03:00 PM</option>
+                                            <option value="04:00 PM">04:00 PM</option>
+                                            <option value="05:00 PM">05:00 PM</option>
+                                        </select>
+                                        <select class="slot-type" required>
+                                            <option value="online">Online</option>
+                                            <option value="in-person">In-Person</option>
+                                            <option value="phone">Phone</option>
+                                        </select>
+                                        <select class="slot-duration">
+                                            <option value="30">30 min</option>
+                                            <option value="60" selected>60 min</option>
+                                            <option value="90">90 min</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline" onclick="addMeetingSlot()">
+                                <i class="fas fa-plus"></i> Add Another Time Slot
+                            </button>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="modal-actions">
+                            <button type="submit" class="btn ${action === 'accept' ? 'btn-primary' : 'btn-secondary'}">
+                                <i class="fas fa-${action === 'accept' ? 'check' : 'times'}"></i> 
+                                ${action === 'accept' ? 'Accept Request' : 'Reject Request'}
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="this.closest('.modal-overlay').remove()">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
             
-            if (message === null) return; // User cancelled
+            document.body.appendChild(modal);
             
-            try {
-                const response = await apiCall(`/requests/${requestId}/respond`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: action,
-                        response_message: message || null
-                    })
-                });
+            // Handle form submission
+            document.getElementById('responseForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                if (response) {
-                    alert(`Request ${action}ed successfully!`);
-                    await loadPendingRequests(); // Refresh the list
+                const responseData = {
+                    action: action,
+                    response_message: document.getElementById('responseMessage').value
+                };
+                
+                // Add meeting slots if accepting
+                if (action === 'accept') {
+                    const meetingSlots = [];
+                    const slots = document.querySelectorAll('.meeting-slot');
                     
-                    // If accepted, refresh cases too
-                    if (action === 'accept') {
-                        const casesData = await apiCall('/cases/');
-                        if (casesData && casesData.cases) {
-                            updateCaseStats(casesData.cases);
-                            displayRecentCases(casesData.cases);
+                    slots.forEach(slot => {
+                        const date = slot.querySelector('.slot-date').value;
+                        const time = slot.querySelector('.slot-time').value;
+                        const meetingType = slot.querySelector('.slot-type').value;
+                        const duration = parseInt(slot.querySelector('.slot-duration').value);
+                        
+                        if (date && time) {
+                            meetingSlots.push({
+                                date: date,
+                                time: time,
+                                meeting_type: meetingType,
+                                duration: duration
+                            });
+                        }
+                    });
+                    
+                    if (meetingSlots.length === 0) {
+                        alert('Please add at least one meeting time slot when accepting a request.');
+                        return;
+                    }
+                    
+                    responseData.meeting_slots = meetingSlots;
+                }
+                
+                try {
+                    const response = await apiCall(`/requests/${requestId}/respond`, {
+                        method: 'POST',
+                        body: JSON.stringify(responseData)
+                    });
+                    
+                    if (response) {
+                        alert(`Request ${action}ed successfully!`);
+                        modal.remove();
+                        await loadPendingRequests(); // Refresh the list
+                        
+                        // If accepted, refresh cases too
+                        if (action === 'accept') {
+                            const casesData = await apiCall('/cases/');
+                            if (casesData && casesData.cases) {
+                                updateCaseStats(casesData.cases);
+                                displayRecentCases(casesData.cases);
+                            }
                         }
                     }
+                } catch (error) {
+                    console.error('Error responding to request:', error);
+                    alert('Error responding to request. Please try again.');
                 }
-            } catch (error) {
-                console.error('Error responding to request:', error);
-                alert('Error responding to request. Please try again.');
-            }
+            });
+        }
+        
+        // Add meeting slot function
+        function addMeetingSlot() {
+            const meetingSlotsContainer = document.getElementById('meetingSlots');
+            const newSlot = document.createElement('div');
+            newSlot.className = 'meeting-slot';
+            newSlot.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 10px;">
+                    <input type="date" class="slot-date" required min="${new Date().toISOString().split('T')[0]}">
+                    <select class="slot-time" required>
+                        <option value="">Select Time</option>
+                        <option value="09:00 AM">09:00 AM</option>
+                        <option value="10:00 AM">10:00 AM</option>
+                        <option value="11:00 AM">11:00 AM</option>
+                        <option value="12:00 PM">12:00 PM</option>
+                        <option value="01:00 PM">01:00 PM</option>
+                        <option value="02:00 PM">02:00 PM</option>
+                        <option value="03:00 PM">03:00 PM</option>
+                        <option value="04:00 PM">04:00 PM</option>
+                        <option value="05:00 PM">05:00 PM</option>
+                    </select>
+                    <select class="slot-type" required>
+                        <option value="online">Online</option>
+                        <option value="in-person">In-Person</option>
+                        <option value="phone">Phone</option>
+                    </select>
+                    <select class="slot-duration">
+                        <option value="30">30 min</option>
+                        <option value="60" selected>60 min</option>
+                        <option value="90">90 min</option>
+                    </select>
+                    <button type="button" class="btn btn-outline" onclick="this.parentElement.parentElement.remove()" style="padding: 8px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            meetingSlotsContainer.appendChild(newSlot);
         }
 
         function updateCaseStats(cases) {

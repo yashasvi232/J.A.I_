@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Meeting Feature - J.A.I</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .btn { padding: 12px 24px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px; }
+        .btn:hover { background: #e55555; }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .step { margin: 20px 0; padding: 20px; border: 2px solid #e9ecef; border-radius: 8px; }
+        .step h3 { margin-top: 0; color: #495057; }
+        .meeting-slot { 
+            border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; background: #f8f9fa; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .meeting-info { flex: 1; }
+        .meeting-actions { margin-left: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗓️ Meeting Availability Feature Test</h1>
+        <p>This tests the new meeting scheduling feature where lawyers can provide available times when accepting requests.</p>
+        
+        <!-- Step 1: Send Request -->
+        <div class="step">
+            <h3>Step 1: Send Request as Client</h3>
+            <button class="btn" onclick="sendTestRequest()">📤 Send Test Request</button>
+            <div id="requestResult"></div>
+        </div>
+        
+        <!-- Step 2: Accept with Meeting Times -->
+        <div class="step">
+            <h3>Step 2: Accept Request with Meeting Times (Lawyer)</h3>
+            <button class="btn" onclick="acceptWithMeetingTimes()">✅ Accept Request with Available Times</button>
+            <div id="acceptResult"></div>
+        </div>
+        
+        <!-- Step 3: View Available Times -->
+        <div class="step">
+            <h3>Step 3: View Available Meeting Times (Client)</h3>
+            <button class="btn" onclick="viewMeetingTimes()">👀 View Available Times</button>
+            <div id="timesResult"></div>
+        </div>
+        
+        <!-- Step 4: Select Meeting Time -->
+        <div class="step">
+            <h3>Step 4: Select Meeting Time (Client)</h3>
+            <div id="meetingSelection"></div>
+            <div id="selectionResult"></div>
+        </div>
+        
+        <div id="overallResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api';
+        let clientToken = '';
+        let lawyerToken = '';
+        let currentRequestId = '';
+        
+        // Step 1: Send test request
+        async function sendTestRequest() {
+            const resultDiv = document.getElementById('requestResult');
+            resultDiv.innerHTML = '<div class="info">Sending test request...</div>';
+            
+            try {
+                // Login as client
+                const loginResponse = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'client@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                if (!loginResponse.ok) throw new Error('Client login failed');
+                
+                clientToken = loginData.access_token;
+                
+                // Send request to test lawyer
+                const requestData = {
+                    title: "Meeting Feature Test",
+                    description: "Testing the new meeting availability feature where lawyers can provide available meeting times.",
+                    category: "Corporate Law",
+                    urgency_level: "medium",
+                    lawyer_id: "69762a98f8d5c82834851b97"  // Test lawyer ID
+                };
+                
+                const requestResponse = await fetch(`${API_BASE}/requests/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${clientToken}`
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const requestResult = await requestResponse.json();
+                if (!requestResponse.ok) throw new Error('Failed to send request');
+                
+                currentRequestId = requestResult.id;
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Request Sent Successfully!</h4>
+                        <p><strong>Request ID:</strong> ${currentRequestId}</p>
+                        <p><strong>Title:</strong> ${requestData.title}</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error"><h4>❌ Error</h4><p>${error.message}</p></div>`;
+            }
+        }
+        
+        // Step 2: Accept with meeting times
+        async function acceptWithMeetingTimes() {
+            if (!currentRequestId) {
+                alert('Please send a request first!');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('acceptResult');
+            resultDiv.innerHTML = '<div class="info">Accepting request with meeting times...</div>';
+            
+            try {
+                // Login as lawyer
+                const loginResponse = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'test.lawyer@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const loginData = await loginResponse.json();
+                if (!loginResponse.ok) throw new Error('Lawyer login failed');
+                
+                lawyerToken = loginData.access_token;
+                
+                // Accept request with meeting slots
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const dayAfter = new Date();
+                dayAfter.setDate(dayAfter.getDate() + 2);
+                
+                const responseData = {
+                    action: 'accept',
+                    response_message: 'Thank you for your request. I would be happy to help with your case. Please select one of the available meeting times below.',
+                    meeting_slots: [
+                        {
+                            date: tomorrow.toISOString().split('T')[0],
+                            time: '10:00 AM',
+                            meeting_type: 'online',
+                            duration: 60
+                        },
+                        {
+                            date: tomorrow.toISOString().split('T')[0],
+                            time: '02:00 PM',
+                            meeting_type: 'phone',
+                            duration: 30
+                        },
+                        {
+                            date: dayAfter.toISOString().split('T')[0],
+                            time: '11:00 AM',
+                            meeting_type: 'in-person',
+                            duration: 90
+                        }
+                    ]
+                };
+                
+                const response = await fetch(`${API_BASE}/requests/${currentRequestId}/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lawyerToken}`
+                    },
+                    body: JSON.stringify(responseData)
+                });
+                
+                const result = await response.json();
+                if (!response.ok) throw new Error('Failed to accept request');
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Request Accepted with Meeting Times!</h4>
+                        <p><strong>Response:</strong> ${responseData.response_message}</p>
+                        <p><strong>Available Times:</strong></p>
+                        <ul>
+                            ${responseData.meeting_slots.map(slot => 
+                                `<li>${new Date(slot.date).toLocaleDateString()} at ${slot.time} (${slot.meeting_type}, ${slot.duration} min)</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error"><h4>❌ Error</h4><p>${error.message}</p></div>`;
+            }
+        }
+        
+        // Step 3: View meeting times
+        async function viewMeetingTimes() {
+            if (!currentRequestId || !clientToken) {
+                alert('Please complete previous steps first!');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('timesResult');
+            resultDiv.innerHTML = '<div class="info">Loading available meeting times...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/requests/`, {
+                    headers: { 'Authorization': `Bearer ${clientToken}` }
+                });
+                
+                const requests = await response.json();
+                if (!response.ok) throw new Error('Failed to load requests');
+                
+                const request = requests.find(r => r.id === currentRequestId);
+                if (!request) throw new Error('Request not found');
+                
+                if (request.meeting_slots && request.meeting_slots.length > 0) {
+                    let slotsHtml = '<div class="success"><h4>✅ Available Meeting Times:</h4>';
+                    
+                    request.meeting_slots.forEach((slot, index) => {
+                        slotsHtml += `
+                            <div class="meeting-slot">
+                                <div class="meeting-info">
+                                    <strong>${new Date(slot.date).toLocaleDateString()}</strong> at <strong>${slot.time}</strong><br>
+                                    <small>${slot.meeting_type} meeting (${slot.duration} minutes)</small>
+                                </div>
+                                <div class="meeting-actions">
+                                    <button class="btn btn-success" onclick="selectMeeting(${index}, '${slot.date}', '${slot.time}', '${slot.meeting_type}', ${slot.duration})">
+                                        Select This Time
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    slotsHtml += '</div>';
+                    resultDiv.innerHTML = slotsHtml;
+                    
+                    document.getElementById('meetingSelection').innerHTML = `
+                        <div class="info">
+                            <p>Click "Select This Time" on any of the available slots above to schedule your meeting.</p>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<div class="error"><h4>❌ No Meeting Times Available</h4><p>The lawyer has not provided any meeting times yet.</p></div>';
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error"><h4>❌ Error</h4><p>${error.message}</p></div>`;
+            }
+        }
+        
+        // Step 4: Select meeting
+        async function selectMeeting(index, date, time, meetingType, duration) {
+            const resultDiv = document.getElementById('selectionResult');
+            resultDiv.innerHTML = '<div class="info">Scheduling meeting...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/requests/${currentRequestId}/select-meeting`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${clientToken}`
+                    },
+                    body: JSON.stringify({
+                        date: date,
+                        time: time,
+                        meeting_type: meetingType,
+                        duration: duration
+                    })
+                });
+                
+                const result = await response.json();
+                if (!response.ok) throw new Error('Failed to select meeting');
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Meeting Scheduled Successfully!</h4>
+                        <p><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</p>
+                        <p><strong>Time:</strong> ${time}</p>
+                        <p><strong>Type:</strong> ${meetingType}</p>
+                        <p><strong>Duration:</strong> ${duration} minutes</p>
+                    </div>
+                `;
+                
+                document.getElementById('overallResult').innerHTML = `
+                    <div class="success" style="margin-top: 30px; padding: 20px; border: 3px solid #10b981;">
+                        <h2>🎉 Meeting Feature Test SUCCESSFUL!</h2>
+                        <p>The complete meeting availability system is working perfectly:</p>
+                        <ul>
+                            <li>✅ Lawyers can provide available meeting times when accepting requests</li>
+                            <li>✅ Clients can see all available time slots</li>
+                            <li>✅ Clients can select their preferred meeting time</li>
+                            <li>✅ Meeting details are stored and tracked</li>
+                        </ul>
+                        <p><strong>Next:</strong> Both lawyer and client dashboards will show the scheduled meeting details!</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error"><h4>❌ Error</h4><p>${error.message}</p></div>`;
+            }
+        }
+    </script>
+</body>
+</html>

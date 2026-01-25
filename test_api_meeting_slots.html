@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Meeting Slots</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .btn { padding: 12px 24px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px 5px; }
+        .result { margin: 20px 0; padding: 15px; border-radius: 5px; background: #f8f9fa; border: 1px solid #dee2e6; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Test API Meeting Slots</h1>
+        
+        <button class="btn" onclick="testClientLogin()">1. Login as Client</button>
+        <button class="btn" onclick="testLawyerLogin()">2. Login as Lawyer</button>
+        <button class="btn" onclick="testGetRequests()">3. Get Client Requests</button>
+        <button class="btn" onclick="testAcceptWithMeeting()">4. Accept Request with Meeting</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api';
+        let clientToken = '';
+        let lawyerToken = '';
+        let testRequestId = '';
+        
+        async function testClientLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'client@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    clientToken = data.access_token;
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <h3>✅ Client Login Success</h3>
+                            <p>Token: ${clientToken.substring(0, 20)}...</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.detail || 'Login failed');
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result">
+                        <h3>❌ Client Login Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testLawyerLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'lawyer@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    lawyerToken = data.access_token;
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <h3>✅ Lawyer Login Success</h3>
+                            <p>Token: ${lawyerToken.substring(0, 20)}...</p>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.detail || 'Login failed');
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result">
+                        <h3>❌ Lawyer Login Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testGetRequests() {
+            if (!clientToken) {
+                alert('Please login as client first!');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/requests/`, {
+                    headers: { 'Authorization': `Bearer ${clientToken}` }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <h3>✅ Client Requests Retrieved</h3>
+                            <p>Found ${data.length} requests</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                    
+                    // Find an accepted request for testing
+                    const acceptedRequest = data.find(r => r.status === 'accepted');
+                    if (acceptedRequest) {
+                        testRequestId = acceptedRequest.id;
+                        console.log('Found accepted request:', testRequestId);
+                    }
+                } else {
+                    throw new Error(data.detail || 'Failed to get requests');
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result">
+                        <h3>❌ Get Requests Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testAcceptWithMeeting() {
+            if (!lawyerToken) {
+                alert('Please login as lawyer first!');
+                return;
+            }
+            
+            try {
+                // First get pending requests for lawyer
+                const pendingResponse = await fetch(`${API_BASE}/requests/pending`, {
+                    headers: { 'Authorization': `Bearer ${lawyerToken}` }
+                });
+                
+                const pendingData = await pendingResponse.json();
+                if (!pendingResponse.ok) throw new Error('Failed to get pending requests');
+                
+                if (pendingData.length === 0) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <h3>ℹ️ No Pending Requests</h3>
+                            <p>No pending requests found for this lawyer.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const requestToAccept = pendingData[0];
+                
+                // Accept with meeting slots
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                const acceptData = {
+                    action: 'accept',
+                    response_message: 'I would be happy to help with your case. Please select a meeting time.',
+                    meeting_slots: [
+                        {
+                            date: tomorrow.toISOString().split('T')[0],
+                            time: '10:00 AM',
+                            meeting_type: 'online',
+                            duration: 60
+                        },
+                        {
+                            date: tomorrow.toISOString().split('T')[0],
+                            time: '02:00 PM',
+                            meeting_type: 'phone',
+                            duration: 30
+                        }
+                    ]
+                };
+                
+                const acceptResponse = await fetch(`${API_BASE}/requests/${requestToAccept.id}/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lawyerToken}`
+                    },
+                    body: JSON.stringify(acceptData)
+                });
+                
+                const acceptResult = await acceptResponse.json();
+                if (acceptResponse.ok) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="result">
+                            <h3>✅ Request Accepted with Meeting Slots</h3>
+                            <p>Request ID: ${requestToAccept.id}</p>
+                            <p>Meeting slots provided: ${acceptData.meeting_slots.length}</p>
+                            <pre>${JSON.stringify(acceptResult, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(acceptResult.detail || 'Failed to accept request');
+                }
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="result">
+                        <h3>❌ Accept Request Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
