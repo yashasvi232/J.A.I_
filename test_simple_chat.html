@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🗨️ Simple Chat Test</h1>
+    
+    <button onclick="setupAndTest()">🚀 Setup Request & Test Chat</button>
+    <button onclick="openSimpleChat()">💬 Open Simple Chat</button>
+    <button onclick="loginAsClient()">👤 Login as Client</button>
+    <button onclick="loginAsLawyer()">⚖️ Login as Lawyer</button>
+    
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api';
+
+        async function setupAndTest() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="info">Setting up request and testing chat...</div>';
+
+            try {
+                // Login as client
+                const clientLogin = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'client@test.com', password: 'password123' })
+                });
+                const clientData = await clientLogin.json();
+
+                // Login as lawyer
+                const lawyerLogin = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'lawyer@test.com', password: 'password123' })
+                });
+                const lawyerData = await lawyerLogin.json();
+
+                // Send request
+                const requestResponse = await fetch(`${API_BASE}/requests/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${clientData.access_token}`
+                    },
+                    body: JSON.stringify({
+                        lawyer_id: lawyerData.user.id,
+                        title: 'Simple Chat Test Request',
+                        description: 'Testing the simple chat interface.',
+                        category: 'General Legal Advice',
+                        urgency_level: 'medium'
+                    })
+                });
+                const requestResult = await requestResponse.json();
+
+                // Accept request
+                const acceptResponse = await fetch(`${API_BASE}/requests/${requestResult.id}/respond`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lawyerData.access_token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'accept',
+                        response_message: 'I accept your request. Let\'s chat!'
+                    })
+                });
+
+                // Test chat conversations
+                const conversationsResponse = await fetch(`${API_BASE}/chat/conversations`, {
+                    headers: { 'Authorization': `Bearer ${clientData.access_token}` }
+                });
+                const conversations = await conversationsResponse.json();
+
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Setup Complete!</h4>
+                        <p><strong>Request ID:</strong> ${requestResult.id}</p>
+                        <p><strong>Conversations Available:</strong> ${conversations.length}</p>
+                        <p>Now you can open the simple chat and see the conversation!</p>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Setup failed: ${error.message}</div>`;
+            }
+        }
+
+        function loginAsClient() {
+            // Set client credentials
+            fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: 'client@test.com', password: 'password123' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('userType', 'client');
+                document.getElementById('result').innerHTML = 
+                    '<div class="success">✅ Logged in as client! Now open simple chat.</div>';
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = 
+                    `<div class="error">❌ Client login failed: ${error.message}</div>`;
+            });
+        }
+
+        function loginAsLawyer() {
+            // Set lawyer credentials
+            fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: 'lawyer@test.com', password: 'password123' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                localStorage.setItem('access_token', data.access_token);
+                localStorage.setItem('userType', 'lawyer');
+                document.getElementById('result').innerHTML = 
+                    '<div class="success">✅ Logged in as lawyer! Now open simple chat.</div>';
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = 
+                    `<div class="error">❌ Lawyer login failed: ${error.message}</div>`;
+            });
+        }
+
+        function openSimpleChat() {
+            window.open('pages/simple-chat.html', '_blank');
+        }
+    </script>
+</body>
+</html>

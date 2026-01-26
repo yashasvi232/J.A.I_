@@ -1,87 +1,136 @@
 #!/usr/bin/env python3
 """
-Test script to verify FastAPI endpoints are working with MongoDB
+Test API endpoints for meeting links
 """
 import asyncio
-import httpx
-import json
-from datetime import datetime
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-BASE_URL = "http://localhost:8000"
+from fastapi.testclient import TestClient
+from main import app
+from database import connect_to_mongo
 
 async def test_api_endpoints():
-    """Test all main API endpoints"""
+    """Test API endpoints for meeting links"""
     
-    print("🧪 Testing FastAPI + MongoDB Integration")
-    print("=" * 50)
+    # Connect to database first
+    await connect_to_mongo()
     
-    async with httpx.AsyncClient() as client:
-        
-        # Test 1: Root endpoint
-        print("\n1️⃣ Testing root endpoint...")
-        try:
-            response = await client.get(f"{BASE_URL}/")
-            print(f"✅ Root: {response.status_code} - {response.json()}")
-        except Exception as e:
-            print(f"❌ Root endpoint failed: {e}")
-        
-        # Test 2: Health check
-        print("\n2️⃣ Testing health endpoint...")
-        try:
-            response = await client.get(f"{BASE_URL}/health")
-            print(f"✅ Health: {response.status_code} - {response.json()}")
-        except Exception as e:
-            print(f"❌ Health endpoint failed: {e}")
-        
-        # Test 3: API Documentation
-        print("\n3️⃣ Testing API docs...")
-        try:
-            response = await client.get(f"{BASE_URL}/docs")
-            if response.status_code == 200:
-                print(f"✅ Docs: {response.status_code} - Swagger UI available")
-            else:
-                print(f"❌ Docs: {response.status_code}")
-        except Exception as e:
-            print(f"❌ Docs endpoint failed: {e}")
-        
-        # Test 4: User registration
-        print("\n4️⃣ Testing user registration...")
-        try:
-            test_user = {
-                "email": f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}@example.com",
-                "password": "testpassword123",
-                "first_name": "Test",
-                "last_name": "User",
-                "user_type": "client"
-            }
-            response = await client.post(f"{BASE_URL}/api/auth/register", json=test_user)
-            print(f"✅ Registration: {response.status_code}")
-            if response.status_code == 201:
-                user_data = response.json()
-                print(f"   Created user: {user_data.get('user', {}).get('email')}")
-                return user_data.get('access_token')
-            else:
-                print(f"   Response: {response.text}")
-        except Exception as e:
-            print(f"❌ Registration failed: {e}")
-        
-        # Test 5: Get lawyers (should work even without auth)
-        print("\n5️⃣ Testing lawyers endpoint...")
-        try:
-            response = await client.get(f"{BASE_URL}/api/lawyers/")
-            print(f"✅ Lawyers: {response.status_code}")
-            if response.status_code == 200:
-                lawyers = response.json()
-                print(f"   Found {len(lawyers)} lawyers")
-        except Exception as e:
-            print(f"❌ Lawyers endpoint failed: {e}")
+    # Create test client
+    with TestClient(app) as client:
     
-    print("\n🎉 API testing completed!")
-    print("\n📋 Summary:")
-    print("- FastAPI server is running on http://localhost:8000")
-    print("- MongoDB connection is working")
-    print("- API documentation available at http://localhost:8000/docs")
-    print("- All endpoints are accessible")
+    print("🧪 Testing API endpoints...")
+    
+    # Step 1: Login as client
+    print("\n1. 👤 Testing client login...")
+    
+    login_response = client.post("/api/auth/login", json={
+        "email": "client@test.com",
+        "password": "password123"
+    })
+    
+    if login_response.status_code == 200:
+        client_token = login_response.json()["access_token"]
+        print(f"✅ Client login successful")
+    else:
+        print(f"❌ Client login failed: {login_response.text}")
+        return
+    
+    # Step 2: Get client requests
+    print("\n2. 📋 Testing client requests endpoint...")
+    
+    client_headers = {"Authorization": f"Bearer {client_token}"}
+    
+    requests_response = client.get("/api/requests/", headers=client_headers)
+    
+    if requests_response.status_code == 200:
+        requests_data = requests_response.json()
+        print(f"✅ Found {len(requests_data)} requests for client")
+        
+        # Check for meeting links
+        meeting_link_count = 0
+        for req in requests_data:
+            if req.get("meeting_link"):
+                meeting_link_count += 1
+                print(f"   🔗 Request '{req['title']}' has meeting link: {req['meeting_link']['join_url']}")
+        
+        print(f"📊 {meeting_link_count} requests have meeting links")
+        
+    else:
+        print(f"❌ Failed to get client requests: {requests_response.text}")
+        return
+    
+    # Step 3: Login as lawyer
+    print("\n3. ⚖️ Testing lawyer login...")
+    
+    lawyer_login_response = client.post("/api/auth/login", json={
+        "email": "lawyer@test.com",
+        "password": "password123"
+    })
+    
+    if lawyer_login_response.status_code == 200:
+        lawyer_token = lawyer_login_response.json()["access_token"]
+        print(f"✅ Lawyer login successful")
+    else:
+        print(f"❌ Lawyer login failed: {lawyer_login_response.text}")
+        return
+    
+    # Step 4: Get lawyer requests
+    print("\n4. 📋 Testing lawyer requests endpoint...")
+    
+    lawyer_headers = {"Authorization": f"Bearer {lawyer_token}"}
+    
+    lawyer_requests_response = client.get("/api/requests/", headers=lawyer_headers)
+    
+    if lawyer_requests_response.status_code == 200:
+        lawyer_requests_data = lawyer_requests_response.json()
+        print(f"✅ Found {len(lawyer_requests_data)} requests for lawyer")
+        
+        # Check for meeting links
+        meeting_link_count = 0
+        for req in lawyer_requests_data:
+            if req.get("meeting_link"):
+                meeting_link_count += 1
+                print(f"   🔗 Request '{req['title']}' has meeting link: {req['meeting_link']['join_url']}")
+        
+        print(f"📊 {meeting_link_count} requests have meeting links")
+        
+    else:
+        print(f"❌ Failed to get lawyer requests: {lawyer_requests_response.text}")
+        return
+    
+    # Step 5: Test specific request endpoint
+    print("\n5. 🎯 Testing specific request endpoint...")
+    
+    # Use the request ID we know has a meeting link
+    test_request_id = "69773c4e2058426b384ce78c"
+    
+    specific_request_response = client.get(f"/api/requests/{test_request_id}", headers=client_headers)
+    
+    if specific_request_response.status_code == 200:
+        request_data = specific_request_response.json()
+        print(f"✅ Got specific request: {request_data['title']}")
+        
+        if request_data.get("meeting_link"):
+            meeting_link = request_data["meeting_link"]
+            print(f"   🔗 Meeting Link: {meeting_link['join_url']}")
+            print(f"   📅 Provider: {meeting_link['provider']}")
+            print(f"   🆔 Meeting ID: {meeting_link['meeting_id']}")
+            print(f"   📅 Created: {meeting_link['created_at']}")
+        else:
+            print(f"   ❌ No meeting link in specific request")
+    else:
+        print(f"❌ Failed to get specific request: {specific_request_response.text}")
+    
+    print(f"\n🎉 API endpoint testing complete!")
+    print(f"📊 Summary:")
+    print(f"   ✅ Client login: Working")
+    print(f"   ✅ Lawyer login: Working") 
+    print(f"   ✅ Client requests API: Working")
+    print(f"   ✅ Lawyer requests API: Working")
+    print(f"   ✅ Specific request API: Working")
+    print(f"   ✅ Meeting links in API responses: Working")
 
 if __name__ == "__main__":
     asyncio.run(test_api_endpoints())

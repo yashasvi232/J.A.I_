@@ -376,6 +376,69 @@
             color: #94a3b8;
         }
         
+        .request-actions {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+        
+        .chat-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .chat-btn:hover {
+            background: #059669;
+        }
+        
+        .response-message {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .meeting-slots {
+            margin-top: 12px;
+            padding: 12px;
+            background: #fef3c7;
+            border-radius: 8px;
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .slots-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .slot-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .slot-btn:hover {
+            background: #2563eb;
+        }
+        
         .response-message {
             margin-top: 8px;
             padding: 8px 12px;
@@ -383,6 +446,39 @@
             border-radius: 6px;
             font-size: 0.9rem;
             color: #475569;
+        }
+        
+        .meeting-link {
+            margin-top: 12px;
+            padding: 12px;
+            background: #e0f2fe;
+            border-radius: 8px;
+            border-left: 4px solid #0284c7;
+        }
+        
+        .meeting-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #0284c7;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 8px;
+            transition: background-color 0.2s;
+        }
+        
+        .meeting-link-btn:hover {
+            background: #0369a1;
+            color: white;
+        }
+        
+        .meeting-info {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 8px;
         }
         
         .lawyer-item {
@@ -432,7 +528,6 @@
             padding: 6px 12px;
             font-size: 0.85rem;
         }
-        }
     </style>
 </head>
 <body>
@@ -445,6 +540,7 @@
             <ul class="nav-links">
                 <li><a href="index.html">Home</a></li>
                 <li><a href="lawyers.html">Find Lawyers</a></li>
+                <li><a href="simple-chat.html">Chat</a></li>
                 <li><a href="client-terms.html">Terms</a></li>
             </ul>
             <div class="nav-auth">
@@ -465,6 +561,9 @@
                     <div class="quick-actions-banner">
                         <a href="lawyers.html" class="quick-action-btn">
                             <i class="fas fa-search"></i> Find Lawyers
+                        </a>
+                        <a href="simple-chat.html" class="quick-action-btn">
+                            <i class="fas fa-comments"></i> Chat
                         </a>
                         <button class="quick-action-btn" onclick="showPostCaseModal()">
                             <i class="fas fa-plus"></i> New Case
@@ -844,6 +943,9 @@
                 const statusIcon = request.status === 'pending' ? 'clock' : 
                                  request.status === 'accepted' ? 'check-circle' : 'times-circle';
                 
+                // Show chat button for accepted or rejected requests
+                const showChatButton = request.status === 'accepted' || request.status === 'rejected';
+                
                 return `
                     <div class="request-item">
                         <div class="request-header">
@@ -857,13 +959,43 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="request-date">
-                                ${new Date(request.created_at).toLocaleDateString()}
+                            <div class="request-actions">
+                                ${showChatButton ? `
+                                    <button class="chat-btn" onclick="openChatForRequest('${request.id}', '${request.title}', '${request.lawyer_name}')" title="Open Chat">
+                                        <i class="fas fa-comments"></i> Chat
+                                    </button>
+                                ` : ''}
+                                <div class="request-date">
+                                    ${new Date(request.created_at).toLocaleDateString()}
+                                </div>
                             </div>
                         </div>
+                        ${request.meeting_link ? `
+                            <div class="meeting-link">
+                                <strong>Meeting Link:</strong>
+                                <a href="${request.meeting_link.join_url}" target="_blank" class="meeting-link-btn">
+                                    <i class="fas fa-video"></i> Join Meeting
+                                </a>
+                                <div class="meeting-info">
+                                    Provider: ${request.meeting_link.provider} | Created: ${new Date(request.meeting_link.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        ` : ''}
                         ${request.response_message ? `
                             <div class="response-message">
                                 <strong>Response:</strong> ${request.response_message}
+                            </div>
+                        ` : ''}
+                        ${request.meeting_slots && request.meeting_slots.length > 0 ? `
+                            <div class="meeting-slots">
+                                <strong>Available Meeting Times:</strong>
+                                <div class="slots-container">
+                                    ${request.meeting_slots.map(slot => `
+                                        <button class="slot-btn" onclick="selectMeetingSlot('${request.id}', '${slot.date}', '${slot.time}')">
+                                            ${slot.date} at ${slot.time} (${slot.meeting_type})
+                                        </button>
+                                    `).join('')}
+                                </div>
                             </div>
                         ` : ''}
                     </div>
@@ -916,6 +1048,48 @@
                 }
             } catch (error) {
                 alert('Error sending request. Please try again.');
+            }
+        }
+
+        
+        // Open chat for a specific request
+        function openChatForRequest(requestId, requestTitle, lawyerName) {
+            // Store chat context in localStorage for the chat page
+            localStorage.setItem('chatContext', JSON.stringify({
+                requestId: requestId,
+                requestTitle: requestTitle,
+                lawyerName: lawyerName
+            }));
+            
+            // Open simple chat page
+            window.open('simple-chat.html', '_blank');
+        }
+        
+        // Select meeting slot
+        async function selectMeetingSlot(requestId, date, time) {
+            if (!confirm(`Confirm meeting on ${date} at ${time}?`)) {
+                return;
+            }
+            
+            try {
+                const response = await apiCall(`/requests/${requestId}/select-meeting`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        date: date,
+                        time: time,
+                        duration: 60,
+                        meeting_type: 'online'
+                    })
+                });
+                
+                if (response) {
+                    alert(`Meeting scheduled successfully for ${date} at ${time}!`);
+                    // Reload requests to update the display
+                    await loadClientRequests();
+                }
+            } catch (error) {
+                console.error('Error selecting meeting slot:', error);
+                alert('Failed to schedule meeting. Please try again.');
             }
         }
 

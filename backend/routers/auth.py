@@ -37,7 +37,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -55,7 +55,6 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         user_id: str = payload.get("sub")
         if user_id is None:
             raise credentials_exception
-        token_data = TokenData(user_id=user_id)
     except JWTError:
         raise credentials_exception
     
@@ -64,7 +63,21 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if user is None:
         raise credentials_exception
     
-    return UserInDB(**user)
+    # Create a simple UserInDB object
+    return UserInDB(
+        id=str(user["_id"]),
+        email=user["email"],
+        first_name=user["first_name"],
+        last_name=user["last_name"],
+        phone=user.get("phone", ""),
+        user_type=user["user_type"],
+        password_hash=user["password_hash"],
+        profile_image_url=user.get("profile_image_url"),
+        is_verified=user.get("is_verified", False),
+        is_active=user.get("is_active", True),
+        created_at=user["created_at"],
+        updated_at=user["updated_at"]
+    )
 
 @router.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):

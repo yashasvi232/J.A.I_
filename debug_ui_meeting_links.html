@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug UI Meeting Links</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-section { border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; background: #f9f9f9; }
+        .error { color: red; background: #fee2e2; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { color: green; background: #d1fae5; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .info { color: blue; background: #dbeafe; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .warning { color: orange; background: #fef3c7; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; background: #3b82f6; color: white; }
+        button:hover { background: #2563eb; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; border: 1px solid #ddd; max-height: 300px; overflow-y: auto; }
+        .meeting-link { margin: 10px 0; padding: 12px; background: #e0f2fe; border-radius: 8px; border-left: 4px solid #0284c7; }
+        .meeting-link-btn { display: inline-flex; align-items: center; gap: 8px; background: #0284c7; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 8px; }
+        .request-item { background: white; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .status-accepted { color: #10b981; font-weight: bold; }
+        .status-pending { color: #f59e0b; font-weight: bold; }
+        .status-rejected { color: #ef4444; font-weight: bold; }
+        iframe { width: 100%; height: 500px; border: 1px solid #ddd; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug UI Meeting Links Issue</h1>
+        <p>This will help identify why meeting links aren't showing in the dashboard UI.</p>
+        
+        <div class="test-section">
+            <h2>Step 1: Test API Connection</h2>
+            <button onclick="testAPIConnection()">Test API</button>
+            <div id="apiResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 2: Login and Get Data</h2>
+            <button onclick="loginAndGetData()">Login & Fetch Data</button>
+            <div id="loginResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 3: Check Meeting Links in Data</h2>
+            <button onclick="checkMeetingLinksInData()">Check Meeting Links</button>
+            <div id="meetingLinksCheck"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 4: Simulate Dashboard Rendering</h2>
+            <button onclick="simulateDashboardRendering()">Simulate Dashboard</button>
+            <div id="dashboardSimulation"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 5: Test Actual Dashboard Pages</h2>
+            <button onclick="loadClientDashboard()">Load Client Dashboard</button>
+            <button onclick="loadLawyerDashboard()">Load Lawyer Dashboard</button>
+            <div id="dashboardFrames"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 6: Browser Console Check</h2>
+            <button onclick="checkBrowserConsole()">Check Console Errors</button>
+            <div id="consoleCheck"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Raw Data Inspection</h2>
+            <button onclick="showRawData()">Show Raw API Data</button>
+            <pre id="rawDataDisplay"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.hostname === 'localhost' ? 
+            'http://localhost:8001/api' : 
+            'https://jai-production-5c01.up.railway.app/api';
+        
+        let clientToken = null;
+        let lawyerToken = null;
+        let clientRequestsData = null;
+        let lawyerRequestsData = null;
+
+        async function testAPIConnection() {
+            const results = document.getElementById('apiResults');
+            results.innerHTML = '<div class="info">Testing API connection...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'test', password: 'test' })
+                });
+                
+                if (response.status === 422 || response.status === 401) {
+                    results.innerHTML = '<div class="success">✅ API is reachable and responding correctly</div>';
+                } else {
+                    results.innerHTML = `<div class="warning">⚠️ API responding but unexpected status: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ API connection failed: ${error.message}</div>`;
+            }
+        }
+
+        async function loginAndGetData() {
+            const results = document.getElementById('loginResults');
+            results.innerHTML = '<div class="info">Logging in and fetching data...</div>';
+            
+            try {
+                // Login as client
+                const clientLogin = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'client@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (clientLogin.ok) {
+                    const clientData = await clientLogin.json();
+                    clientToken = clientData.access_token;
+                    results.innerHTML += '<div class="success">✅ Client login successful</div>';
+                    
+                    // Get client requests
+                    const clientRequests = await fetch(`${API_BASE_URL}/requests/`, {
+                        headers: { 'Authorization': `Bearer ${clientToken}` }
+                    });
+                    
+                    if (clientRequests.ok) {
+                        clientRequestsData = await clientRequests.json();
+                        results.innerHTML += `<div class="success">✅ Client requests fetched: ${clientRequestsData.length} requests</div>`;
+                    } else {
+                        results.innerHTML += `<div class="error">❌ Failed to fetch client requests: ${clientRequests.status}</div>`;
+                    }
+                } else {
+                    results.innerHTML += `<div class="error">❌ Client login failed: ${clientLogin.status}</div>`;
+                }
+                
+                // Login as lawyer
+                const lawyerLogin = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'lawyer@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (lawyerLogin.ok) {
+                    const lawyerData = await lawyerLogin.json();
+                    lawyerToken = lawyerData.access_token;
+                    results.innerHTML += '<div class="success">✅ Lawyer login successful</div>';
+                    
+                    // Get lawyer requests
+                    const lawyerRequests = await fetch(`${API_BASE_URL}/requests/`, {
+                        headers: { 'Authorization': `Bearer ${lawyerToken}` }
+                    });
+                    
+                    if (lawyerRequests.ok) {
+                        lawyerRequestsData = await lawyerRequests.json();
+                        results.innerHTML += `<div class="success">✅ Lawyer requests fetched: ${lawyerRequestsData.length} requests</div>`;
+                    } else {
+                        results.innerHTML += `<div class="error">❌ Failed to fetch lawyer requests: ${lawyerRequests.status}</div>`;
+                    }
+                } else {
+                    results.innerHTML += `<div class="error">❌ Lawyer login failed: ${lawyerLogin.status}</div>`;
+                }
+                
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ Login/fetch error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkMeetingLinksInData() {
+            const results = document.getElementById('meetingLinksCheck');
+            
+            if (!clientRequestsData || !lawyerRequestsData) {
+                results.innerHTML = '<div class="warning">⚠️ Please run Step 2 first to get data</div>';
+                return;
+            }
+            
+            results.innerHTML = '<div class="info">Checking for meeting links in API data...</div>';
+            
+            // Check client requests
+            const clientMeetingLinks = clientRequestsData.filter(req => req.meeting_link);
+            results.innerHTML += `<div class="info">📋 Client requests with meeting links: ${clientMeetingLinks.length}/${clientRequestsData.length}</div>`;
+            
+            clientMeetingLinks.forEach(req => {
+                results.innerHTML += `
+                    <div class="success">
+                        ✅ Found meeting link in "${req.title}":<br>
+                        - URL: ${req.meeting_link.join_url}<br>
+                        - Provider: ${req.meeting_link.provider}<br>
+                        - Meeting ID: ${req.meeting_link.meeting_id}
+                    </div>
+                `;
+            });
+            
+            // Check lawyer requests
+            const lawyerMeetingLinks = lawyerRequestsData.filter(req => req.meeting_link);
+            results.innerHTML += `<div class="info">⚖️ Lawyer requests with meeting links: ${lawyerMeetingLinks.length}/${lawyerRequestsData.length}</div>`;
+            
+            if (clientMeetingLinks.length === 0 && lawyerMeetingLinks.length === 0) {
+                results.innerHTML += '<div class="error">❌ No meeting links found in API data! This is the problem.</div>';
+            } else {
+                results.innerHTML += '<div class="success">✅ Meeting links found in API data. Issue is likely in UI rendering.</div>';
+            }
+        }
+
+        async function simulateDashboardRendering() {
+            const results = document.getElementById('dashboardSimulation');
+            
+            if (!clientRequestsData) {
+                results.innerHTML = '<div class="warning">⚠️ Please run Step 2 first to get data</div>';
+                return;
+            }
+            
+            results.innerHTML = '<div class="info">Simulating dashboard rendering...</div>';
+            
+            try {
+                // Simulate the exact displayClientRequests function from client-dashboard.html
+                const simulatedHTML = clientRequestsData.slice(0, 3).map(function(request) {
+                    const statusClass = request.status === 'pending' ? 'status-pending' : 
+                                      request.status === 'accepted' ? 'status-accepted' : 'status-rejected';
+                    
+                    const showChatButton = request.status === 'accepted' || request.status === 'rejected';
+                    
+                    return `
+                        <div class="request-item">
+                            <div class="request-header">
+                                <div class="request-info">
+                                    <h4>${request.title}</h4>
+                                    <div class="request-meta">
+                                        <span>👨‍💼 ${request.lawyer_name}</span>
+                                        <span>🏷️ ${request.category}</span>
+                                        <span class="request-status ${statusClass}">
+                                            📊 ${request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="request-actions">
+                                    ${showChatButton ? `
+                                        <button class="chat-btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 20px;">
+                                            💬 Chat
+                                        </button>
+                                    ` : ''}
+                                    <div class="request-date">
+                                        ${new Date(request.created_at).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            </div>
+                            ${request.meeting_link ? `
+                                <div class="meeting-link">
+                                    <strong>🔗 Meeting Link:</strong>
+                                    <a href="${request.meeting_link.join_url}" target="_blank" class="meeting-link-btn">
+                                        🎥 Join Meeting
+                                    </a>
+                                    <div style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">
+                                        Provider: ${request.meeting_link.provider} | Created: ${new Date(request.meeting_link.created_at).toLocaleDateString()}
+                                    </div>
+                                </div>
+                            ` : '<div class="warning" style="margin-top: 10px; padding: 8px; background: #fef3c7; border-radius: 4px;">⚠️ No meeting link available for this request</div>'}
+                        </div>
+                    `;
+                }).join('');
+                
+                results.innerHTML += '<div class="success">✅ Dashboard simulation successful</div>';
+                results.innerHTML += '<div class="info"><strong>Simulated Dashboard Output:</strong></div>';
+                results.innerHTML += simulatedHTML;
+                
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ Dashboard simulation failed: ${error.message}</div>`;
+            }
+        }
+
+        function loadClientDashboard() {
+            const frames = document.getElementById('dashboardFrames');
+            frames.innerHTML = '<h3>Client Dashboard:</h3><iframe src="pages/client-dashboard.html"></iframe>';
+        }
+
+        function loadLawyerDashboard() {
+            const frames = document.getElementById('dashboardFrames');
+            frames.innerHTML = '<h3>Lawyer Dashboard:</h3><iframe src="pages/lawyer-dashboard.html"></iframe>';
+        }
+
+        function checkBrowserConsole() {
+            const results = document.getElementById('consoleCheck');
+            results.innerHTML = `
+                <div class="info">
+                    <strong>To check for JavaScript errors:</strong><br>
+                    1. Open browser Developer Tools (F12)<br>
+                    2. Go to Console tab<br>
+                    3. Load the dashboard pages<br>
+                    4. Look for red error messages<br>
+                    5. Common issues: CORS errors, 404s, JavaScript syntax errors
+                </div>
+                <div class="warning">
+                    <strong>Common Problems:</strong><br>
+                    - API endpoint not reachable<br>
+                    - Authentication token expired<br>
+                    - JavaScript errors preventing rendering<br>
+                    - CSS/styling issues hiding elements<br>
+                    - Incorrect API response format
+                </div>
+            `;
+        }
+
+        function showRawData() {
+            const display = document.getElementById('rawDataDisplay');
+            display.textContent = JSON.stringify({
+                clientRequests: clientRequestsData,
+                lawyerRequests: lawyerRequestsData,
+                apiBaseUrl: API_BASE_URL,
+                tokens: {
+                    clientToken: clientToken ? 'Present' : 'Missing',
+                    lawyerToken: lawyerToken ? 'Present' : 'Missing'
+                }
+            }, null, 2);
+        }
+
+        // Auto-run basic tests on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                testAPIConnection();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

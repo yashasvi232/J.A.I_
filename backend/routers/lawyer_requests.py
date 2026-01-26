@@ -2,16 +2,19 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
+import logging
 
 from models.user import UserInDB
 from models.lawyer_request import (
     LawyerRequestCreate, LawyerRequestResponse, RequestActionRequest,
-    RequestUpdateRequest, LawyerRequestInDB, RequestStatus
+    RequestUpdateRequest, LawyerRequestInDB, RequestStatus, MeetingLinkData
 )
 from routers.auth import get_current_user
 from database import get_database
+from services.meeting_link_generator import generate_simple_meeting_link
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=LawyerRequestResponse)
 async def create_lawyer_request(
@@ -19,11 +22,16 @@ async def create_lawyer_request(
     current_user: UserInDB = Depends(get_current_user)
 ):
     """Create a new lawyer request (client only)"""
+    print(f"🔍 Request received from user: {current_user.email} (type: {current_user.user_type})")
+    
     if current_user.user_type != "client":
+        print(f"❌ User type check failed: {current_user.user_type} != 'client'")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only clients can create lawyer requests"
         )
+    
+    print(f"✅ User type check passed: {current_user.user_type}")
     
     db = get_database()
     
@@ -33,10 +41,13 @@ async def create_lawyer_request(
         "user_type": "lawyer"
     })
     if not lawyer:
+        print(f"❌ Lawyer not found with ID: {request_data.lawyer_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lawyer not found"
         )
+    
+    print(f"✅ Lawyer found: {lawyer['email']}")
     
     # Create request document
     request_dict = request_data.dict()
@@ -45,6 +56,8 @@ async def create_lawyer_request(
     request_dict["status"] = RequestStatus.PENDING
     request_dict["created_at"] = datetime.utcnow()
     request_dict["updated_at"] = datetime.utcnow()
+    
+    print(f"📝 Creating request: {request_dict['title']}")
     
     # Insert into database
     result = await db.lawyer_requests.insert_one(request_dict)
@@ -72,6 +85,8 @@ async def create_lawyer_request(
         responded_at=created_request.get("responded_at"),
         meeting_slots=created_request.get("meeting_slots"),
         selected_meeting=created_request.get("selected_meeting"),
+        meeting_link=MeetingLinkData(**created_request["meeting_link"]) if created_request.get("meeting_link") else None,
+        meeting_created_at=created_request.get("meeting_created_at"),
         client_name=f"{client['first_name']} {client['last_name']}",
         client_email=client["email"],
         lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}",
@@ -115,6 +130,8 @@ async def get_user_requests(current_user: UserInDB = Depends(get_current_user)):
                 responded_at=req.get("responded_at"),
                 meeting_slots=req.get("meeting_slots"),
                 selected_meeting=req.get("selected_meeting"),
+                meeting_link=MeetingLinkData(**req["meeting_link"]) if req.get("meeting_link") else None,
+                meeting_created_at=req.get("meeting_created_at"),
                 client_name=f"{client['first_name']} {client['last_name']}",
                 client_email=client["email"],
                 lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,
@@ -152,6 +169,8 @@ async def get_user_requests(current_user: UserInDB = Depends(get_current_user)):
                 responded_at=req.get("responded_at"),
                 meeting_slots=req.get("meeting_slots"),
                 selected_meeting=req.get("selected_meeting"),
+                meeting_link=MeetingLinkData(**req["meeting_link"]) if req.get("meeting_link") else None,
+                meeting_created_at=req.get("meeting_created_at"),
                 client_name=f"{client['first_name']} {client['last_name']}" if client else "Unknown Client",
                 client_email=client["email"] if client else "",
                 lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,
@@ -204,6 +223,8 @@ async def get_pending_requests(current_user: UserInDB = Depends(get_current_user
             responded_at=req.get("responded_at"),
             meeting_slots=req.get("meeting_slots"),
             selected_meeting=req.get("selected_meeting"),
+            meeting_link=MeetingLinkData(**req["meeting_link"]) if req.get("meeting_link") else None,
+            meeting_created_at=req.get("meeting_created_at"),
             client_name=f"{client['first_name']} {client['last_name']}" if client else "Unknown Client",
             client_email=client["email"] if client else "",
             lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,
@@ -274,6 +295,45 @@ async def respond_to_request(
                 "available": True
             })
         update_data["meeting_slots"] = meeting_slots
+        
+        # Generate meeting link for the first available slot
+        try:
+            # Get client and lawyer info
+            client = await db.users.find_one({"_id": request_doc["client_id"]})
+            lawyer = await db.users.find_one({"_id": request_doc["lawyer_id"]})
+            
+            if client and lawyer and meeting_slots:
+                # Use the first meeting slot for link generation
+                first_slot = meeting_slots[0]
+                
+                # Generate a simple meeting link
+                meeting_url = await generate_simple_meeting_link(
+                    title=request_doc["title"],
+                    description=request_doc["description"],
+                    host_email=lawyer["email"],
+                    attendee_email=client["email"]
+                )
+                
+                if meeting_url:
+                    # Create meeting link data
+                    meeting_link_data = {
+                        "meeting_id": f"meeting_{request_id}_{int(datetime.utcnow().timestamp())}",
+                        "join_url": meeting_url,
+                        "host_url": meeting_url,
+                        "provider": "placeholder",
+                        "created_at": datetime.utcnow(),
+                        "expires_at": None,
+                        "meeting_password": None
+                    }
+                    
+                    update_data["meeting_link"] = meeting_link_data
+                    update_data["meeting_created_at"] = datetime.utcnow()
+                    
+                    logger.info(f"Meeting link generated for request {request_id}: {meeting_url}")
+                
+        except Exception as e:
+            logger.error(f"Failed to generate meeting link for request {request_id}: {str(e)}")
+            # Continue without meeting link - don't fail the request acceptance
     
     await db.lawyer_requests.update_one(
         {"_id": ObjectId(request_id)},
@@ -352,6 +412,8 @@ async def get_request_details(
         responded_at=request_doc.get("responded_at"),
         meeting_slots=request_doc.get("meeting_slots"),
         selected_meeting=request_doc.get("selected_meeting"),
+        meeting_link=MeetingLinkData(**request_doc["meeting_link"]) if request_doc.get("meeting_link") else None,
+        meeting_created_at=request_doc.get("meeting_created_at"),
         client_name=f"{client['first_name']} {client['last_name']}" if client else "Unknown Client",
         client_email=client["email"] if client else "",
         lawyer_name=f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else None,

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Dashboard Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-section { border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; background: #f9f9f9; }
+        .error { color: red; background: #fee2e2; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { color: green; background: #d1fae5; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .info { color: blue; background: #dbeafe; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; background: #3b82f6; color: white; }
+        iframe { width: 100%; height: 800px; border: 1px solid #ddd; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Direct Dashboard Test</h1>
+        <p>This loads the actual dashboard pages directly from the server.</p>
+        
+        <div class="test-section">
+            <h2>Instructions</h2>
+            <div class="info">
+                <strong>Test Steps:</strong><br>
+                1. Click "Load Client Dashboard" below<br>
+                2. In the iframe, login with: <strong>client@test.com</strong> / <strong>password123</strong><br>
+                3. Look for "PowerShell Test Request" - it should have a blue "Join Meeting" button<br>
+                4. Open browser Developer Tools (F12) and check Console for any errors<br>
+                5. If meeting link doesn't show, there's a JavaScript issue
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Client Dashboard</h2>
+            <button onclick="loadClientDashboard()">Load Client Dashboard</button>
+            <button onclick="loadLawyerDashboard()">Load Lawyer Dashboard</button>
+            <div id="dashboardFrame"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Expected Result</h2>
+            <div class="success">
+                <strong>✅ What you should see:</strong><br>
+                - Login successfully as client@test.com<br>
+                - See "PowerShell Test Request" in the requests list<br>
+                - See blue "Join Meeting" button with Google Meet link<br>
+                - Click button should open: https://meet.google.com/97ffbe0428
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Troubleshooting</h2>
+            <div class="info">
+                <strong>If meeting links don't show:</strong><br>
+                1. Check browser Console (F12) for JavaScript errors<br>
+                2. Check Network tab to see if API calls are successful<br>
+                3. Verify the API response contains meeting_link field<br>
+                4. Check if JavaScript is blocked or cached old version
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadClientDashboard() {
+            const frame = document.getElementById('dashboardFrame');
+            frame.innerHTML = '<iframe src="http://localhost:8001/pages/client-dashboard.html"></iframe>';
+        }
+        
+        function loadLawyerDashboard() {
+            const frame = document.getElementById('dashboardFrame');
+            frame.innerHTML = '<iframe src="http://localhost:8001/pages/lawyer-dashboard.html"></iframe>';
+        }
+    </script>
+</body>
+</html>

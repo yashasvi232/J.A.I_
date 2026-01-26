@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard Meeting Links</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .request-item { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .meeting-link { background: #e0f2fe; padding: 12px; border-radius: 8px; margin-top: 10px; border-left: 4px solid #0284c7; }
+        .meeting-link-btn { display: inline-flex; align-items: center; gap: 8px; background: #0284c7; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 8px; }
+        .meeting-link-btn:hover { background: #0369a1; color: white; }
+        .meeting-info { font-size: 0.8rem; color: #64748b; margin-top: 8px; }
+        .status { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .status-accepted { background: #d1fae5; color: #065f46; }
+        .status-rejected { background: #fee2e2; color: #991b1b; }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .error { color: red; padding: 10px; background: #fee2e2; border-radius: 4px; margin: 10px 0; }
+        .success { color: green; padding: 10px; background: #d1fae5; border-radius: 4px; margin: 10px 0; }
+        .loading { color: blue; padding: 10px; background: #dbeafe; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard Meeting Links Test</h1>
+        
+        <div id="status" class="loading">Loading...</div>
+        
+        <h2>Client Dashboard Test</h2>
+        <div id="clientRequests"></div>
+        
+        <h2>Lawyer Dashboard Test</h2>
+        <div id="lawyerRequests"></div>
+        
+        <h2>Raw API Response</h2>
+        <pre id="rawResponse" style="background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto;"></pre>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.hostname === 'localhost' ? 
+            'http://localhost:8001/api' : 
+            'https://jai-production-5c01.up.railway.app/api';
+
+        async function testDashboards() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                // Test client login
+                statusDiv.innerHTML = '<div class="loading">Testing client login...</div>';
+                const clientLogin = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'client@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (!clientLogin.ok) {
+                    throw new Error(`Client login failed: ${clientLogin.status}`);
+                }
+                
+                const clientToken = (await clientLogin.json()).access_token;
+                
+                // Test client requests API
+                statusDiv.innerHTML = '<div class="loading">Loading client requests...</div>';
+                const clientRequestsResponse = await fetch(`${API_BASE_URL}/requests/`, {
+                    headers: { 'Authorization': `Bearer ${clientToken}` }
+                });
+                
+                if (!clientRequestsResponse.ok) {
+                    throw new Error(`Client requests failed: ${clientRequestsResponse.status}`);
+                }
+                
+                const clientRequests = await clientRequestsResponse.json();
+                
+                // Display client requests
+                displayClientRequests(clientRequests);
+                
+                // Test lawyer login
+                statusDiv.innerHTML = '<div class="loading">Testing lawyer login...</div>';
+                const lawyerLogin = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'lawyer@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (!lawyerLogin.ok) {
+                    throw new Error(`Lawyer login failed: ${lawyerLogin.status}`);
+                }
+                
+                const lawyerToken = (await lawyerLogin.json()).access_token;
+                
+                // Test lawyer requests API
+                statusDiv.innerHTML = '<div class="loading">Loading lawyer requests...</div>';
+                const lawyerRequestsResponse = await fetch(`${API_BASE_URL}/requests/`, {
+                    headers: { 'Authorization': `Bearer ${lawyerToken}` }
+                });
+                
+                if (!lawyerRequestsResponse.ok) {
+                    throw new Error(`Lawyer requests failed: ${lawyerRequestsResponse.status}`);
+                }
+                
+                const lawyerRequests = await lawyerRequestsResponse.json();
+                
+                // Display lawyer requests
+                displayLawyerRequests(lawyerRequests);
+                
+                // Show raw response
+                document.getElementById('rawResponse').textContent = JSON.stringify({
+                    clientRequests: clientRequests,
+                    lawyerRequests: lawyerRequests
+                }, null, 2);
+                
+                statusDiv.innerHTML = '<div class="success">✅ All tests completed successfully!</div>';
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                console.error('Test error:', error);
+            }
+        }
+        
+        function displayClientRequests(requests) {
+            const container = document.getElementById('clientRequests');
+            
+            if (requests.length === 0) {
+                container.innerHTML = '<p>No requests found</p>';
+                return;
+            }
+            
+            container.innerHTML = requests.map(request => {
+                const statusClass = `status-${request.status}`;
+                
+                return `
+                    <div class="request-item">
+                        <h3>${request.title}</h3>
+                        <p><strong>Status:</strong> <span class="status ${statusClass}">${request.status}</span></p>
+                        <p><strong>Lawyer:</strong> ${request.lawyer_name}</p>
+                        <p><strong>Category:</strong> ${request.category}</p>
+                        <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleDateString()}</p>
+                        
+                        ${request.meeting_link ? `
+                            <div class="meeting-link">
+                                <strong>🔗 Meeting Link Available!</strong>
+                                <a href="${request.meeting_link.join_url}" target="_blank" class="meeting-link-btn">
+                                    🎥 Join Meeting
+                                </a>
+                                <div class="meeting-info">
+                                    Provider: ${request.meeting_link.provider} | 
+                                    Meeting ID: ${request.meeting_link.meeting_id} | 
+                                    Created: ${new Date(request.meeting_link.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        ` : '<p><em>No meeting link available</em></p>'}
+                        
+                        ${request.response_message ? `
+                            <p><strong>Response:</strong> ${request.response_message}</p>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function displayLawyerRequests(requests) {
+            const container = document.getElementById('lawyerRequests');
+            
+            if (requests.length === 0) {
+                container.innerHTML = '<p>No requests found</p>';
+                return;
+            }
+            
+            container.innerHTML = requests.map(request => {
+                const statusClass = `status-${request.status}`;
+                
+                return `
+                    <div class="request-item">
+                        <h3>${request.title}</h3>
+                        <p><strong>Status:</strong> <span class="status ${statusClass}">${request.status}</span></p>
+                        <p><strong>Client:</strong> ${request.client_name}</p>
+                        <p><strong>Category:</strong> ${request.category}</p>
+                        <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleDateString()}</p>
+                        
+                        ${request.meeting_link ? `
+                            <div class="meeting-link">
+                                <strong>🔗 Meeting Link Generated!</strong>
+                                <a href="${request.meeting_link.join_url}" target="_blank" class="meeting-link-btn">
+                                    🎥 Join Meeting
+                                </a>
+                                <div class="meeting-info">
+                                    Provider: ${request.meeting_link.provider} | 
+                                    Meeting ID: ${request.meeting_link.meeting_id} | 
+                                    Created: ${new Date(request.meeting_link.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        ` : '<p><em>No meeting link available</em></p>'}
+                        
+                        ${request.response_message ? `
+                            <p><strong>Response:</strong> ${request.response_message}</p>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', testDashboards);
+    </script>
+</body>
+</html>

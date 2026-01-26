@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Working Chat</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .btn { padding: 15px 30px; margin: 10px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        .btn:hover { background: #1d4ed8; }
+        .success { background: #10b981; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Working Chat System</h1>
+    
+    <div class="info">
+        <h3>Instructions:</h3>
+        <p>1. Click "Open Working Chat" below</p>
+        <p>2. Click "Login as Client" or "Login as Lawyer"</p>
+        <p>3. Click "Setup Test Chat" to create a conversation</p>
+        <p>4. Select the conversation from the sidebar</p>
+        <p>5. Start chatting!</p>
+    </div>
+    
+    <button class="btn success" onclick="openWorkingChat()">🚀 Open Working Chat</button>
+    <button class="btn" onclick="openDirectChat()">📱 Open Direct Chat</button>
+    
+    <div id="result"></div>
+
+    <script>
+        function openWorkingChat() {
+            window.open('pages/working-chat.html', '_blank');
+            document.getElementById('result').innerHTML = `
+                <div class="info">
+                    <h4>✅ Working Chat Opened!</h4>
+                    <p>The working chat page should open in a new tab with:</p>
+                    <ul>
+                        <li>Quick login buttons</li>
+                        <li>Setup test chat button</li>
+                        <li>Full chat interface</li>
+                        <li>Console logging for debugging</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        function openDirectChat() {
+            window.open('pages/direct-chat.html', '_blank');
+            document.getElementById('result').innerHTML = `
+                <div class="info">
+                    <h4>📱 Direct Chat Opened!</h4>
+                    <p>Alternative chat interface opened.</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

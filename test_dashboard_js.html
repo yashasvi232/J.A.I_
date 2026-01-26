@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard JavaScript Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .test-section { border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; background: #f9f9f9; }
+        .error { color: red; background: #fee2e2; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { color: green; background: #d1fae5; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .info { color: blue; background: #dbeafe; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .warning { color: orange; background: #fef3c7; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; background: #3b82f6; color: white; }
+        button:hover { background: #2563eb; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; max-height: 300px; overflow-y: auto; }
+        .meeting-link { margin: 10px 0; padding: 12px; background: #e0f2fe; border-radius: 8px; border-left: 4px solid #0284c7; }
+        .meeting-link-btn { display: inline-flex; align-items: center; gap: 8px; background: #0284c7; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600; margin-top: 8px; }
+        .request-item { background: white; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Dashboard JavaScript Test</h1>
+        <p>This will test if the dashboard JavaScript functions are working correctly.</p>
+        
+        <div class="test-section">
+            <h2>Step 1: Test API Configuration</h2>
+            <button onclick="testAPIConfig()">Test API Config</button>
+            <div id="apiConfigResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 2: Test Authentication Functions</h2>
+            <button onclick="testAuthFunctions()">Test Auth</button>
+            <div id="authResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 3: Test Dashboard Functions</h2>
+            <button onclick="testDashboardFunctions()">Test Dashboard Functions</button>
+            <div id="dashboardResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 4: Test Meeting Link Rendering</h2>
+            <button onclick="testMeetingLinkRendering()">Test Meeting Link Rendering</button>
+            <div id="meetingLinkResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 5: Full Dashboard Simulation</h2>
+            <button onclick="runFullDashboardSimulation()">Run Full Simulation</button>
+            <div id="fullSimulationResults"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 6: Browser Compatibility Check</h2>
+            <button onclick="checkBrowserCompatibility()">Check Browser</button>
+            <div id="browserResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Copy the exact API configuration from the dashboard
+        const API_BASE_URL = window.location.hostname === 'localhost' ? 
+            'http://localhost:8001/api' : 
+            'https://jai-production-5c01.up.railway.app/api';
+
+        function testAPIConfig() {
+            const results = document.getElementById('apiConfigResults');
+            results.innerHTML = `
+                <div class="info">
+                    <strong>API Configuration:</strong><br>
+                    Hostname: ${window.location.hostname}<br>
+                    API Base URL: ${API_BASE_URL}<br>
+                    Protocol: ${window.location.protocol}<br>
+                    Port: ${window.location.port || 'default'}
+                </div>
+            `;
+            
+            if (window.location.hostname === 'localhost') {
+                results.innerHTML += '<div class="success">✅ Using localhost API configuration</div>';
+            } else {
+                results.innerHTML += '<div class="info">ℹ️ Using production API configuration</div>';
+            }
+        }
+
+        async function testAuthFunctions() {
+            const results = document.getElementById('authResults');
+            results.innerHTML = '<div class="info">Testing authentication functions...</div>';
+            
+            // Test the exact apiCall function from the dashboard
+            async function apiCall(endpoint, options = {}) {
+                const token = localStorage.getItem('access_token');
+                const defaultOptions = {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                };
+                
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    ...defaultOptions,
+                    ...options,
+                    headers: { ...defaultOptions.headers, ...options.headers }
+                });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('access_token');
+                    results.innerHTML += '<div class="warning">⚠️ Token expired, would redirect to login</div>';
+                    return null;
+                }
+                
+                return response.json();
+            }
+            
+            try {
+                // Test login
+                const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'client@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (loginResponse.ok) {
+                    const loginData = await loginResponse.json();
+                    localStorage.setItem('access_token', loginData.access_token);
+                    results.innerHTML += '<div class="success">✅ Login function working</div>';
+                    
+                    // Test apiCall function
+                    const userData = await apiCall('/auth/me');
+                    if (userData) {
+                        results.innerHTML += `<div class="success">✅ apiCall function working - User: ${userData.first_name}</div>`;
+                    } else {
+                        results.innerHTML += '<div class="error">❌ apiCall function failed</div>';
+                    }
+                } else {
+                    results.innerHTML += `<div class="error">❌ Login failed: ${loginResponse.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ Auth test failed: ${error.message}</div>`;
+            }
+        }
+
+        async function testDashboardFunctions() {
+            const results = document.getElementById('dashboardResults');
+            results.innerHTML = '<div class="info">Testing dashboard functions...</div>';
+            
+            try {
+                // Test if we can fetch requests data
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    results.innerHTML += '<div class="warning">⚠️ No token found, run auth test first</div>';
+                    return;
+                }
+                
+                const requestsResponse = await fetch(`${API_BASE_URL}/requests/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (requestsResponse.ok) {
+                    const requestsData = await requestsResponse.json();
+                    results.innerHTML += `<div class="success">✅ Requests data fetched: ${requestsData.length} requests</div>`;
+                    
+                    // Test displayClientRequests function simulation
+                    const meetingLinksCount = requestsData.filter(req => req.meeting_link).length;
+                    results.innerHTML += `<div class="info">📊 Requests with meeting links: ${meetingLinksCount}</div>`;
+                    
+                    if (meetingLinksCount > 0) {
+                        results.innerHTML += '<div class="success">✅ Meeting links found in data</div>';
+                    } else {
+                        results.innerHTML += '<div class="warning">⚠️ No meeting links in data</div>';
+                    }
+                } else {
+                    results.innerHTML += `<div class="error">❌ Failed to fetch requests: ${requestsResponse.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ Dashboard functions test failed: ${error.message}</div>`;
+            }
+        }
+
+        async function testMeetingLinkRendering() {
+            const results = document.getElementById('meetingLinkResults');
+            results.innerHTML = '<div class="info">Testing meeting link rendering...</div>';
+            
+            // Create mock data with meeting link
+            const mockRequest = {
+                id: 'test123',
+                title: 'Test Request with Meeting Link',
+                status: 'accepted',
+                lawyer_name: 'Test Lawyer',
+                category: 'Test Category',
+                created_at: new Date().toISOString(),
+                meeting_link: {
+                    join_url: 'https://meet.google.com/test123',
+                    provider: 'google_meet',
+                    meeting_id: 'test_meeting_123',
+                    created_at: new Date().toISOString()
+                },
+                response_message: 'Test response'
+            };
+            
+            try {
+                // Test the exact rendering logic from client-dashboard.html
+                const statusClass = mockRequest.status === 'pending' ? 'status-pending' : 
+                                  mockRequest.status === 'accepted' ? 'status-accepted' : 'status-rejected';
+                
+                const showChatButton = mockRequest.status === 'accepted' || mockRequest.status === 'rejected';
+                
+                const renderedHTML = `
+                    <div class="request-item">
+                        <div class="request-header">
+                            <div class="request-info">
+                                <h4>${mockRequest.title}</h4>
+                                <div class="request-meta">
+                                    <span>👨‍💼 ${mockRequest.lawyer_name}</span>
+                                    <span>🏷️ ${mockRequest.category}</span>
+                                    <span class="request-status ${statusClass}">
+                                        📊 ${mockRequest.status.charAt(0).toUpperCase() + mockRequest.status.slice(1)}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="request-actions">
+                                ${showChatButton ? `
+                                    <button class="chat-btn" style="background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 20px;">
+                                        💬 Chat
+                                    </button>
+                                ` : ''}
+                                <div class="request-date">
+                                    ${new Date(mockRequest.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        </div>
+                        ${mockRequest.meeting_link ? `
+                            <div class="meeting-link">
+                                <strong>🔗 Meeting Link:</strong>
+                                <a href="${mockRequest.meeting_link.join_url}" target="_blank" class="meeting-link-btn">
+                                    🎥 Join Meeting
+                                </a>
+                                <div style="font-size: 0.8rem; color: #64748b; margin-top: 8px;">
+                                    Provider: ${mockRequest.meeting_link.provider} | Created: ${new Date(mockRequest.meeting_link.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                results.innerHTML += '<div class="success">✅ Meeting link rendering logic working</div>';
+                results.innerHTML += '<div class="info"><strong>Rendered Output:</strong></div>';
+                results.innerHTML += renderedHTML;
+                
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ Meeting link rendering failed: ${error.message}</div>`;
+            }
+        }
+
+        async function runFullDashboardSimulation() {
+            const results = document.getElementById('fullSimulationResults');
+            results.innerHTML = '<div class="info">Running full dashboard simulation...</div>';
+            
+            try {
+                // Run all tests in sequence
+                await testAPIConfig();
+                await testAuthFunctions();
+                await testDashboardFunctions();
+                await testMeetingLinkRendering();
+                
+                results.innerHTML += '<div class="success">✅ Full dashboard simulation completed</div>';
+                results.innerHTML += `
+                    <div class="info">
+                        <strong>If meeting links still don't show on actual dashboard:</strong><br>
+                        1. Check browser console for JavaScript errors<br>
+                        2. Verify the dashboard HTML files are loading correctly<br>
+                        3. Clear browser cache and hard refresh (Ctrl+Shift+R)<br>
+                        4. Try opening dashboard in incognito/private mode<br>
+                        5. Check if API server is running and accessible
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ Full simulation failed: ${error.message}</div>`;
+            }
+        }
+
+        function checkBrowserCompatibility() {
+            const results = document.getElementById('browserResults');
+            
+            const browserInfo = {
+                userAgent: navigator.userAgent,
+                language: navigator.language,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine,
+                platform: navigator.platform,
+                localStorage: typeof(Storage) !== "undefined",
+                fetch: typeof(fetch) !== "undefined",
+                promises: typeof(Promise) !== "undefined",
+                es6: typeof(Symbol) !== "undefined"
+            };
+            
+            results.innerHTML = `
+                <div class="info">
+                    <strong>Browser Information:</strong><br>
+                    User Agent: ${browserInfo.userAgent}<br>
+                    Language: ${browserInfo.language}<br>
+                    Platform: ${browserInfo.platform}<br>
+                    Online: ${browserInfo.onLine}<br>
+                    Cookies Enabled: ${browserInfo.cookieEnabled}
+                </div>
+                <div class="info">
+                    <strong>Feature Support:</strong><br>
+                    Local Storage: ${browserInfo.localStorage ? '✅' : '❌'}<br>
+                    Fetch API: ${browserInfo.fetch ? '✅' : '❌'}<br>
+                    Promises: ${browserInfo.promises ? '✅' : '❌'}<br>
+                    ES6 Features: ${browserInfo.es6 ? '✅' : '❌'}
+                </div>
+            `;
+            
+            if (!browserInfo.localStorage || !browserInfo.fetch || !browserInfo.promises) {
+                results.innerHTML += '<div class="error">❌ Browser compatibility issues detected!</div>';
+            } else {
+                results.innerHTML += '<div class="success">✅ Browser is compatible</div>';
+            }
+        }
+    </script>
+</body>
+</html>

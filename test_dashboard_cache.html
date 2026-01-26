@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Cache Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .test-section { border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; background: #f9f9f9; }
+        .error { color: red; background: #fee2e2; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .success { color: green; background: #d1fae5; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .info { color: blue; background: #dbeafe; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .warning { color: orange; background: #fef3c7; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; background: #3b82f6; color: white; }
+        button:hover { background: #2563eb; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Dashboard Cache & Loading Test</h1>
+        <p>This will help identify if the issue is with browser caching or file loading.</p>
+        
+        <div class="test-section">
+            <h2>Step 1: Check Dashboard File Contents</h2>
+            <button onclick="checkDashboardFiles()">Check Files</button>
+            <div id="fileCheck"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 2: Force Refresh Test</h2>
+            <div class="info">
+                <strong>Manual Steps:</strong><br>
+                1. Open client-dashboard.html in a new tab<br>
+                2. Press Ctrl+Shift+R (hard refresh) to clear cache<br>
+                3. Check if meeting links appear<br>
+                4. If not, check browser console for errors
+            </div>
+            <button onclick="openDashboardsWithCacheBuster()">Open Dashboards (Cache Busted)</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 3: Direct API Test</h2>
+            <button onclick="testDirectAPI()">Test API Directly</button>
+            <div id="apiTest"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 4: JavaScript Console Check</h2>
+            <div class="warning">
+                <strong>Check for these common issues:</strong><br>
+                1. <code>Failed to fetch</code> - API connection issues<br>
+                2. <code>401 Unauthorized</code> - Authentication problems<br>
+                3. <code>TypeError</code> - JavaScript errors in dashboard code<br>
+                4. <code>CORS</code> - Cross-origin request issues<br>
+                5. <code>displayClientRequests is not defined</code> - Function loading issues
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Step 5: Meeting Link Test Data</h2>
+            <button onclick="showTestData()">Show Test Data</button>
+            <div id="testData"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.hostname === 'localhost' ? 
+            'http://localhost:8001/api' : 
+            'https://jai-production-5c01.up.railway.app/api';
+
+        function checkDashboardFiles() {
+            const results = document.getElementById('fileCheck');
+            results.innerHTML = `
+                <div class="info">
+                    <strong>Dashboard Files to Check:</strong><br>
+                    1. <code>pages/client-dashboard.html</code> - Should contain meeting link display code<br>
+                    2. <code>pages/lawyer-dashboard.html</code> - Should contain meeting link display code<br><br>
+                    
+                    <strong>Look for this code in client-dashboard.html:</strong><br>
+                    <pre>\${request.meeting_link ? \`
+    &lt;div class="meeting-link"&gt;
+        &lt;strong&gt;Meeting Link:&lt;/strong&gt;
+        &lt;a href="\${request.meeting_link.join_url}" target="_blank" class="meeting-link-btn"&gt;
+            🎥 Join Meeting
+        &lt;/a&gt;
+    &lt;/div&gt;
+\` : ''}</pre>
+                    
+                    <strong>If this code is missing, the meeting links won't show!</strong>
+                </div>
+            `;
+        }
+
+        function openDashboardsWithCacheBuster() {
+            const timestamp = new Date().getTime();
+            window.open(`pages/client-dashboard.html?v=${timestamp}`, '_blank');
+            window.open(`pages/lawyer-dashboard.html?v=${timestamp}`, '_blank');
+        }
+
+        async function testDirectAPI() {
+            const results = document.getElementById('apiTest');
+            results.innerHTML = '<div class="info">Testing API directly...</div>';
+            
+            try {
+                // Login as client
+                const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'client@test.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (loginResponse.ok) {
+                    const loginData = await loginResponse.json();
+                    const token = loginData.access_token;
+                    
+                    // Get requests
+                    const requestsResponse = await fetch(`${API_BASE_URL}/requests/`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (requestsResponse.ok) {
+                        const requestsData = await requestsResponse.json();
+                        const meetingLinksCount = requestsData.filter(req => req.meeting_link).length;
+                        
+                        results.innerHTML += `<div class="success">✅ API working: ${requestsData.length} requests, ${meetingLinksCount} with meeting links</div>`;
+                        
+                        if (meetingLinksCount > 0) {
+                            results.innerHTML += '<div class="success">🔗 Meeting links are available in API!</div>';
+                            requestsData.filter(req => req.meeting_link).forEach(req => {
+                                results.innerHTML += `
+                                    <div class="info">
+                                        📋 "${req.title}" has meeting link: ${req.meeting_link.join_url}
+                                    </div>
+                                `;
+                            });
+                        } else {
+                            results.innerHTML += '<div class="warning">⚠️ No meeting links found in API response</div>';
+                        }
+                    } else {
+                        results.innerHTML += `<div class="error">❌ Requests API failed: ${requestsResponse.status}</div>`;
+                    }
+                } else {
+                    results.innerHTML += `<div class="error">❌ Login failed: ${loginResponse.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<div class="error">❌ API test failed: ${error.message}</div>`;
+            }
+        }
+
+        function showTestData() {
+            const results = document.getElementById('testData');
+            results.innerHTML = `
+                <div class="info">
+                    <strong>Test Credentials:</strong><br>
+                    Client: client@test.com / password123<br>
+                    Lawyer: lawyer@test.com / password123<br><br>
+                    
+                    <strong>Expected Meeting Link:</strong><br>
+                    "PowerShell Test Request" should have: https://meet.google.com/97ffbe0428<br><br>
+                    
+                    <strong>How to Test:</strong><br>
+                    1. Login as client on dashboard<br>
+                    2. Look for "PowerShell Test Request"<br>
+                    3. Should see blue "Join Meeting" button<br>
+                    4. If not visible, check browser console for errors
+                </div>
+                <div class="warning">
+                    <strong>If meeting links still don't show:</strong><br>
+                    1. Clear browser cache completely<br>
+                    2. Check if JavaScript is enabled<br>
+                    3. Try different browser<br>
+                    4. Check network tab for failed requests<br>
+                    5. Verify API server is running on port 8001
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

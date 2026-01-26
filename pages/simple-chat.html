@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - J.A.I Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        
+        .conversations-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .conversation-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .conversation-item:hover {
+            background: #f9fafb;
+        }
+        
+        .conversation-item.active {
+            background: #dbeafe;
+            border-right: 3px solid #2563eb;
+        }
+        
+        .conversation-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .conversation-preview {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+        
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #f9fafb;
+        }
+        
+        .messages-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        
+        .message.own {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        
+        .message.own .message-bubble {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .message:not(.own) .message-bubble {
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .message-sender {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+        
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+        
+        .message-input-area {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+        }
+        
+        .message-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .message-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 25px;
+            outline: none;
+        }
+        
+        .send-button {
+            padding: 12px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+        
+        .send-button:hover {
+            background: #1d4ed8;
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #6b7280;
+            text-align: center;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+        
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 20px;
+        }
+        
+        .login-prompt {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="loginPrompt" class="login-prompt" style="display: none;">
+        <h2>Please Login to Access Chat</h2>
+        <p>You need to be logged in to use the chat feature.</p>
+        <a href="client-login.html" class="btn">Login as Client</a>
+        <a href="lawyer-login.html" class="btn">Login as Lawyer</a>
+    </div>
+
+    <div id="chatApp" style="display: flex; flex-direction: column; height: 100vh;">
+        <div class="header">
+            <h1>J.A.I Chat</h1>
+            <div id="userInfo">Loading...</div>
+        </div>
+        
+        <div class="main-container">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h3>Conversations</h3>
+                </div>
+                <div class="conversations-list" id="conversationsList">
+                    <div class="loading">Loading conversations...</div>
+                </div>
+            </div>
+
+            <div class="chat-area">
+                <div id="emptyChatState" class="empty-state">
+                    <h3>Select a conversation</h3>
+                    <p>Choose a conversation from the sidebar to start chatting</p>
+                </div>
+
+                <div id="activeChatContainer" style="display: none; flex: 1; flex-direction: column;">
+                    <div class="chat-header">
+                        <div id="chatTitle">Conversation</div>
+                        <div id="chatSubtitle" style="font-size: 14px; color: #6b7280;"></div>
+                    </div>
+
+                    <div class="messages-container" id="messagesContainer">
+                        <div class="loading">Loading messages...</div>
+                    </div>
+
+                    <div class="message-input-area">
+                        <form class="message-form" id="messageForm">
+                            <input 
+                                type="text" 
+                                class="message-input" 
+                                id="messageInput" 
+                                placeholder="Type your message..."
+                                required
+                            >
+                            <button type="submit" class="send-button">Send</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api';
+        let currentUser = null;
+        let currentRequestId = null;
+        let conversations = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Chat page loaded');
+            await checkAuth();
+        });
+
+        async function checkAuth() {
+            console.log('Checking authentication...');
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                console.log('No token found');
+                showLoginPrompt();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    console.log('User authenticated:', currentUser);
+                    document.getElementById('userInfo').textContent = 
+                        `${currentUser.first_name} ${currentUser.last_name} (${currentUser.user_type})`;
+                    
+                    await loadConversations();
+                } else {
+                    console.log('Authentication failed');
+                    showLoginPrompt();
+                }
+            } catch (error) {
+                console.error('Auth error:', error);
+                showLoginPrompt();
+            }
+        }
+
+        function showLoginPrompt() {
+            document.getElementById('loginPrompt').style.display = 'flex';
+            document.getElementById('chatApp').style.display = 'none';
+        }
+
+        async function loadConversations() {
+            console.log('Loading conversations...');
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_BASE}/chat/conversations`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    conversations = await response.json();
+                    console.log('Conversations loaded:', conversations);
+                    renderConversations();
+                } else {
+                    throw new Error(`Failed to load conversations: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+                document.getElementById('conversationsList').innerHTML = 
+                    `<div class="error">Failed to load conversations: ${error.message}</div>`;
+            }
+        }
+
+        function renderConversations() {
+            const container = document.getElementById('conversationsList');
+            
+            if (conversations.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 40px 20px;">
+                        <h4>No conversations</h4>
+                        <p>Accepted requests will appear here</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = conversations.map(conv => `
+                <div class="conversation-item" onclick="selectConversation('${conv.request_id}')">
+                    <div class="conversation-title">${conv.request_title}</div>
+                    <div class="conversation-preview">
+                        ${currentUser.user_type === 'client' ? conv.lawyer_name : conv.client_name}
+                    </div>
+                    <div class="conversation-preview" style="font-size: 12px; margin-top: 5px;">
+                        ${conv.last_message ? conv.last_message.substring(0, 50) + '...' : 'No messages yet'}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function selectConversation(requestId) {
+            console.log('Selecting conversation:', requestId);
+            currentRequestId = requestId;
+            
+            // Update active conversation styling
+            document.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.conversation-item').classList.add('active');
+
+            // Show chat container
+            document.getElementById('emptyChatState').style.display = 'none';
+            document.getElementById('activeChatContainer').style.display = 'flex';
+
+            // Update chat header
+            const conversation = conversations.find(c => c.request_id === requestId);
+            if (conversation) {
+                document.getElementById('chatTitle').textContent = conversation.request_title;
+                document.getElementById('chatSubtitle').textContent = 
+                    `${conversation.client_name} ↔ ${conversation.lawyer_name}`;
+            }
+
+            // Load messages
+            await loadMessages(requestId);
+        }
+
+        async function loadMessages(requestId) {
+            console.log('Loading messages for request:', requestId);
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_BASE}/chat/${requestId}/messages`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const messages = await response.json();
+                    console.log('Messages loaded:', messages);
+                    renderMessages(messages);
+                } else {
+                    throw new Error(`Failed to load messages: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('messagesContainer').innerHTML = 
+                    `<div class="error">Failed to load messages: ${error.message}</div>`;
+            }
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('messagesContainer');
+            
+            if (messages.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h4>No messages yet</h4>
+                        <p>Start the conversation by sending a message</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = messages.map(msg => `
+                <div class="message ${msg.sender_id === currentUser.id ? 'own' : ''}">
+                    <div class="message-bubble">
+                        ${msg.sender_id !== currentUser.id ? `<div class="message-sender">${msg.sender_name}</div>` : ''}
+                        <div>${msg.content}</div>
+                        <div class="message-time">${formatTime(msg.timestamp)}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Handle message sending
+        document.getElementById('messageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentRequestId) return;
+
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+
+            if (!content) return;
+
+            console.log('Sending message:', content);
+
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch(`${API_BASE}/chat/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        request_id: currentRequestId,
+                        content: content,
+                        message_type: 'text'
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('Message sent successfully');
+                    messageInput.value = '';
+                    await loadMessages(currentRequestId);
+                    await loadConversations();
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert(`Failed to send message: ${error.message}`);
+            }
+        });
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+            
+            return date.toLocaleDateString();
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(async () => {
+            if (currentUser && currentRequestId) {
+                await loadMessages(currentRequestId);
+                await loadConversations();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
