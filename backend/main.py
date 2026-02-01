@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, RedirectResponse
 from contextlib import asynccontextmanager
 import uvicorn
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -150,39 +151,87 @@ async def api_root():
         "mongodb": "connected"
     }
 
-# Mount static files (HTML pages)
+# Import clean URL routing system
+from url_routing import (
+    handle_clean_url, 
+    handle_legacy_redirect, 
+    get_current_user_optional,
+    ROUTE_MAPPINGS
+)
+
+# Mount static files (HTML pages) - keep for backward compatibility
 app.mount("/pages", StaticFiles(directory="../pages"), name="pages")
 print("✅ Static files mounted at /pages")
 
-# Serve the frontend at the root
-from fastapi.responses import FileResponse
+# Clean URL Routes (add these BEFORE the catch-all routes)
+from fastapi.responses import FileResponse, RedirectResponse
 import os
 
-@app.get("/")
-async def serve_frontend():
-    """Serve the main frontend page"""
-    return FileResponse("../pages/index.html")
+# Clean URL handlers for specific routes
+@app.get("/login")
+async def clean_login(request: Request, user_context = Depends(get_current_user_optional)):
+    """Handle clean login URL with type detection"""
+    return await handle_clean_url("/login", request, user_context)
 
-# Serve specific frontend files directly from root (only common ones)
+@app.get("/dashboard")
+async def clean_dashboard(request: Request, user_context = Depends(get_current_user_optional)):
+    """Handle clean dashboard URL with user-type routing"""
+    return await handle_clean_url("/dashboard", request, user_context)
+
+@app.get("/lawyers")
+async def clean_lawyers(request: Request, user_context = Depends(get_current_user_optional)):
+    """Handle clean lawyers URL"""
+    return await handle_clean_url("/lawyers", request, user_context)
+
+@app.get("/terms")
+async def clean_terms(request: Request, user_context = Depends(get_current_user_optional)):
+    """Handle clean terms URL"""
+    return await handle_clean_url("/terms", request, user_context)
+
+# Legacy URL redirects (redirect old .html URLs to clean URLs)
+@app.get("/{filename}.html")
+async def redirect_legacy_html(filename: str, request: Request):
+    """Redirect legacy HTML URLs to clean URLs"""
+    return await handle_legacy_redirect(filename, request)
+
+# Root route - serve homepage
+@app.get("/")
+async def serve_frontend(request: Request, user_context = Depends(get_current_user_optional)):
+    """Serve the main frontend page"""
+    return await handle_clean_url("/", request, user_context)
+
+# Serve specific frontend files directly from root (keep for assets)
 @app.get("/style.css")
 async def serve_style():
     return FileResponse("../pages/style.css")
+
+@app.get("/login-style.css")
+async def serve_login_style():
+    return FileResponse("../pages/login-style.css")
 
 @app.get("/script.js") 
 async def serve_script():
     return FileResponse("../pages/script.js")
 
+@app.get("/lawyers_data.js")
+async def serve_lawyers_data():
+    return FileResponse("../pages/lawyers_data.js")
+
+@app.get("/list.js")
+async def serve_list():
+    return FileResponse("../pages/list.js")
+
 @app.get("/Logo.jpeg")
 async def serve_logo():
     return FileResponse("../pages/Logo.jpeg")
 
-@app.get("/{filename}.html")
-async def serve_html_files(filename: str):
-    """Serve HTML files from root"""
-    file_path = f"../pages/{filename}.html"
-    if os.path.exists(file_path):
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404, detail="Page not found")
+@app.get("/Sup.jpeg")
+async def serve_sup():
+    return FileResponse("../pages/Sup.jpeg")
+
+@app.get("/Navbar_bk.png")
+async def serve_navbar():
+    return FileResponse("../pages/Navbar_bk.png")
 
 @app.get("/health")
 async def health_check():
