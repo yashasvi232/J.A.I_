@@ -121,7 +121,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include routers FIRST - before any catch-all routes
 print("📋 Including API routers...")
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 print("   ✅ Auth router included")
@@ -139,12 +139,9 @@ app.include_router(ai_matching.router, prefix="/api/ai", tags=["AI Services"])
 print("   ✅ AI matching router included")
 print("🎉 All routers included successfully!")
 
-# Mount static files (HTML pages)
-app.mount("/pages", StaticFiles(directory="../pages"), name="pages")
-print("✅ Static files mounted at /pages")
-
-@app.get("/")
-async def root():
+# API root endpoint
+@app.get("/api")
+async def api_root():
     return {
         "message": "Welcome to J.A.I API",
         "description": "Jurist Artificial Intelligence - AI-powered legal platform",
@@ -152,6 +149,40 @@ async def root():
         "docs": "/docs",
         "mongodb": "connected"
     }
+
+# Mount static files (HTML pages)
+app.mount("/pages", StaticFiles(directory="../pages"), name="pages")
+print("✅ Static files mounted at /pages")
+
+# Serve the frontend at the root
+from fastapi.responses import FileResponse
+import os
+
+@app.get("/")
+async def serve_frontend():
+    """Serve the main frontend page"""
+    return FileResponse("../pages/index.html")
+
+# Serve specific frontend files directly from root (only common ones)
+@app.get("/style.css")
+async def serve_style():
+    return FileResponse("../pages/style.css")
+
+@app.get("/script.js") 
+async def serve_script():
+    return FileResponse("../pages/script.js")
+
+@app.get("/Logo.jpeg")
+async def serve_logo():
+    return FileResponse("../pages/Logo.jpeg")
+
+@app.get("/{filename}.html")
+async def serve_html_files(filename: str):
+    """Serve HTML files from root"""
+    file_path = f"../pages/{filename}.html"
+    if os.path.exists(file_path):
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="Page not found")
 
 @app.get("/health")
 async def health_check():
