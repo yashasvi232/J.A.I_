@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Requests - J.A.I</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #ff6b6b;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b6b;
+        }
+        .section h2 {
+            margin: 0 0 15px 0;
+            color: #1e293b;
+        }
+        .request-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-accepted { background: #d1fae5; color: #065f46; }
+        .status-rejected { background: #fee2e2; color: #991b1b; }
+        .btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #e55555;
+        }
+        .loading {
+            text-align: center;
+            color: #64748b;
+            font-style: italic;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Debug Requests - J.A.I Platform</h1>
+        
+        <div class="section">
+            <h2>📊 Database Status</h2>
+            <div id="dbStatus" class="loading">Loading...</div>
+        </div>
+        
+        <div class="section">
+            <h2>📋 All Requests</h2>
+            <div id="allRequests" class="loading">Loading...</div>
+        </div>
+        
+        <div class="section">
+            <h2>⏳ Pending Requests</h2>
+            <div id="pendingRequests" class="loading">Loading...</div>
+        </div>
+        
+        <div class="section">
+            <h2>🧪 Test Actions</h2>
+            <button class="btn" onclick="sendTestRequest()">Send Test Request</button>
+            <button class="btn" onclick="refreshData()">Refresh Data</button>
+            <button class="btn" onclick="clearRequests()">Clear All Requests</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 
+            'http://localhost:8001/api' : 
+            'https://jai-production-5c01.up.railway.app/api';
+
+        async function loadData() {
+            try {
+                // Load all requests
+                const allResponse = await fetch(`${API_BASE}/debug/requests`);
+                if (allResponse.ok) {
+                    const allData = await allResponse.json();
+                    displayAllRequests(allData);
+                } else {
+                    document.getElementById('allRequests').innerHTML = 
+                        `<div class="error">Failed to load requests: ${allResponse.statusText}</div>`;
+                }
+
+                // Load pending requests (for test lawyer by default)
+                const pendingResponse = await fetch(`${API_BASE}/requests/pending`);
+                if (pendingResponse.ok) {
+                    const pendingData = await pendingResponse.json();
+                    displayPendingRequests(pendingData);
+                } else {
+                    document.getElementById('pendingRequests').innerHTML = 
+                        `<div class="error">Failed to load pending requests: ${pendingResponse.statusText}</div>`;
+                }
+
+                // Load all lawyers to show their pending requests
+                await loadLawyerRequests();
+
+                // Update status
+                document.getElementById('dbStatus').innerHTML = 
+                    '<span style="color: #10b981; font-weight: 600;">✅ Connected to database</span>';
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('dbStatus').innerHTML = 
+                    `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function loadLawyerRequests() {
+            try {
+                // Get all lawyers
+                const lawyersResponse = await fetch(`${API_BASE}/public/lawyers`);
+                if (!lawyersResponse.ok) return;
+
+                const lawyersData = await lawyersResponse.json();
+                const lawyers = lawyersData.lawyers || [];
+
+                let allPendingRequests = [];
+                
+                // Get pending requests for each lawyer
+                for (const lawyer of lawyers) {
+                    try {
+                        const pendingResponse = await fetch(`${API_BASE}/requests/pending/${lawyer.id}`);
+                        if (pendingResponse.ok) {
+                            const pendingData = await pendingResponse.json();
+                            pendingData.forEach(request => {
+                                request.target_lawyer = `${lawyer.first_name} ${lawyer.last_name}`;
+                            });
+                            allPendingRequests = allPendingRequests.concat(pendingData);
+                        }
+                    } catch (error) {
+                        console.error(`Error loading requests for lawyer ${lawyer.id}:`, error);
+                    }
+                }
+
+                displayAllPendingRequests(allPendingRequests);
+
+            } catch (error) {
+                console.error('Error loading lawyer requests:', error);
+            }
+        }
+
+        function displayAllPendingRequests(requests) {
+            const container = document.getElementById('pendingRequests');
+            
+            if (requests.length === 0) {
+                container.innerHTML = '<p>No pending requests found for any lawyer.</p>';
+                return;
+            }
+
+            let html = `<p><strong>All Pending Requests:</strong> ${requests.length}</p>`;
+            
+            requests.forEach(request => {
+                html += `
+                    <div class="request-item">
+                        <h4>${request.title}</h4>
+                        <p><strong>Target Lawyer:</strong> ${request.target_lawyer}</p>
+                        <p><strong>Description:</strong> ${request.description}</p>
+                        <p><strong>Category:</strong> ${request.category}</p>
+                        <p><strong>Client:</strong> ${request.client_name}</p>
+                        <p><strong>Urgency:</strong> ${request.urgency_level}</p>
+                        <p><strong>Budget:</strong> ₹${request.budget_min || 0} - ₹${request.budget_max || 0}</p>
+                        <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function displayAllRequests(data) {
+            const container = document.getElementById('allRequests');
+            
+            if (data.total_requests === 0) {
+                container.innerHTML = '<p>No requests found in database.</p>';
+                return;
+            }
+
+            let html = `<p><strong>Total Requests:</strong> ${data.total_requests}</p>`;
+            
+            data.requests.forEach(request => {
+                html += `
+                    <div class="request-item">
+                        <h4>${request.title}</h4>
+                        <p><strong>Status:</strong> <span class="status status-${request.status}">${request.status}</span></p>
+                        <p><strong>Client:</strong> ${request.client_name}</p>
+                        <p><strong>Lawyer:</strong> ${request.lawyer_name}</p>
+                        <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
+                        <p><strong>ID:</strong> ${request.id}</p>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function displayPendingRequests(requests) {
+            const container = document.getElementById('pendingRequests');
+            
+            if (requests.length === 0) {
+                container.innerHTML = '<p>No pending requests found.</p>';
+                return;
+            }
+
+            let html = `<p><strong>Pending Requests:</strong> ${requests.length}</p>`;
+            
+            requests.forEach(request => {
+                html += `
+                    <div class="request-item">
+                        <h4>${request.title}</h4>
+                        <p><strong>Description:</strong> ${request.description}</p>
+                        <p><strong>Category:</strong> ${request.category}</p>
+                        <p><strong>Client:</strong> ${request.client_name}</p>
+                        <p><strong>Urgency:</strong> ${request.urgency_level}</p>
+                        <p><strong>Budget:</strong> ₹${request.budget_min || 0} - ₹${request.budget_max || 0}</p>
+                        <p><strong>Created:</strong> ${new Date(request.created_at).toLocaleString()}</p>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        async function sendTestRequest() {
+            try {
+                // First get lawyers
+                const lawyersResponse = await fetch(`${API_BASE}/public/lawyers`);
+                if (!lawyersResponse.ok) {
+                    alert('Failed to get lawyers');
+                    return;
+                }
+
+                const lawyersData = await lawyersResponse.json();
+                if (!lawyersData.lawyers || lawyersData.lawyers.length === 0) {
+                    alert('No lawyers found');
+                    return;
+                }
+
+                const lawyer = lawyersData.lawyers[0];
+                
+                const requestData = {
+                    title: `Test Request ${new Date().getTime()}`,
+                    description: "This is a test request to verify the system is working.",
+                    category: "Contract and Agreement Law",
+                    urgency_level: "medium",
+                    budget_min: 500,
+                    budget_max: 1000,
+                    lawyer_id: lawyer.id
+                };
+
+                const response = await fetch(`${API_BASE}/requests/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`Test request sent successfully! ID: ${result.request_id}`);
+                    loadData(); // Refresh data
+                } else {
+                    const error = await response.text();
+                    alert(`Failed to send test request: ${error}`);
+                }
+
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        function refreshData() {
+            loadData();
+        }
+
+        async function clearRequests() {
+            if (confirm('Are you sure you want to clear all requests? This cannot be undone.')) {
+                alert('Clear requests functionality not implemented yet.');
+            }
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

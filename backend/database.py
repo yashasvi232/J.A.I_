@@ -72,6 +72,13 @@ async def create_indexes():
         await database.lawyer_requests.create_index("status")
         await database.lawyer_requests.create_index("created_at")
         
+        # Messages collection indexes
+        await database.messages.create_index("request_id")
+        await database.messages.create_index("sender_id")
+        await database.messages.create_index("created_at")
+        await database.messages.create_index([("request_id", 1), ("created_at", 1)])
+        await database.messages.create_index([("request_id", 1), ("is_read", 1)])
+        
         # AI matches collection indexes
         await database.ai_matches.create_index("case_id")
         await database.ai_matches.create_index("lawyer_id")

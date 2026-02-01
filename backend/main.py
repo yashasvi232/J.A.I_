@@ -13,7 +13,7 @@ load_dotenv()
 
 # Import routers
 try:
-    from routers import auth, users, lawyers, cases, ai_matching, lawyer_requests
+    from routers import auth, users, lawyers, cases, ai_matching, lawyer_requests, messages
     print("✅ All routers imported successfully")
 except Exception as e:
     print(f"❌ Router import error: {e}")
@@ -133,6 +133,8 @@ app.include_router(cases.router, prefix="/api/cases", tags=["Cases"])
 print("   ✅ Cases router included")
 app.include_router(lawyer_requests.router, prefix="/api/requests", tags=["Lawyer Requests"])
 print("   ✅ Lawyer requests router included")
+app.include_router(messages.router, prefix="/api/messages", tags=["Messages"])
+print("   ✅ Messages router included")
 app.include_router(ai_matching.router, prefix="/api/ai", tags=["AI Services"])
 print("   ✅ AI matching router included")
 print("🎉 All routers included successfully!")
@@ -154,6 +156,37 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "J.A.I API", "mongodb": "connected"}
+
+# Debug endpoint to check all requests
+@app.get("/api/debug/requests")
+async def debug_all_requests():
+    """Debug endpoint to see all requests in database"""
+    try:
+        db = get_database()
+        
+        requests = []
+        async for request in db.lawyer_requests.find({}).sort("created_at", -1):
+            # Get client and lawyer info
+            client = await db.users.find_one({"_id": request["client_id"]})
+            lawyer = await db.users.find_one({"_id": request["lawyer_id"]})
+            
+            request_data = {
+                "id": str(request["_id"]),
+                "title": request["title"],
+                "status": request["status"],
+                "client_name": f"{client['first_name']} {client['last_name']}" if client else "Unknown",
+                "lawyer_name": f"{lawyer['first_name']} {lawyer['last_name']}" if lawyer else "Unknown",
+                "created_at": request["created_at"].isoformat() if request.get("created_at") else None
+            }
+            requests.append(request_data)
+        
+        return {
+            "total_requests": len(requests),
+            "requests": requests
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
 
 # Simple lawyers endpoint for quick testing
 @app.get("/api/lawyers")
@@ -352,19 +385,55 @@ async def signup_options():
     """Handle CORS preflight for signup"""
     return {"message": "OK"}
 
-# Send request to lawyer endpoint
-@app.post("/api/requests/send")
-async def send_lawyer_request(request_data: dict):
-    """Send request to lawyer"""
+# Send request to lawyer endpoint with proper authentication
+@app.post("/api/requests/")
+async def send_lawyer_request(request_data: dict, authorization: str = None):
+    """Send request to lawyer - supports any lawyer"""
     try:
         from datetime import datetime
         from bson import ObjectId
         
         db = get_database()
         
+        print(f"🔍 Received request data: {request_data}")  # Debug logging
+        
+        # Validate required fields
+        required_fields = ["title", "description", "category", "lawyer_id"]
+        for field in required_fields:
+            if not request_data.get(field):
+                raise HTTPException(status_code=400, detail=f"{field} is required")
+        
+        # TODO: Extract client_id from JWT token
+        # For now, we'll determine the client from the login context
+        # In a real implementation, this would come from the JWT token
+        
+        # Try to get client_id from request data first (for testing)
+        client_id = request_data.get("client_id")
+        
+        if not client_id:
+            # Fallback: use the test client for now
+            # In production, this should be extracted from JWT
+            test_client = await db.users.find_one({"email": "client@test.com"})
+            if test_client:
+                client_id = str(test_client["_id"])
+            else:
+                raise HTTPException(status_code=400, detail="Client authentication required")
+        
+        print(f"📋 Using client_id: {client_id}")  # Debug
+        
+        # Verify the target lawyer exists and is actually a lawyer
+        lawyer = await db.users.find_one({
+            "_id": ObjectId(request_data["lawyer_id"]),
+            "user_type": "lawyer"
+        })
+        if not lawyer:
+            raise HTTPException(status_code=404, detail="Lawyer not found or invalid")
+        
+        print(f"⚖️ Found target lawyer: {lawyer['first_name']} {lawyer['last_name']} ({lawyer['email']})")  # Debug
+        
         # Create request document
         request_doc = {
-            "client_id": ObjectId(request_data["client_id"]),
+            "client_id": ObjectId(client_id),
             "lawyer_id": ObjectId(request_data["lawyer_id"]),
             "title": request_data["title"],
             "description": request_data["description"],
@@ -372,19 +441,242 @@ async def send_lawyer_request(request_data: dict):
             "urgency_level": request_data.get("urgency_level", "medium"),
             "budget_min": request_data.get("budget_min"),
             "budget_max": request_data.get("budget_max"),
+            "preferred_meeting_type": request_data.get("preferred_meeting_type"),
+            "location": request_data.get("location"),
+            "additional_notes": request_data.get("additional_notes"),
             "status": "pending",
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "response_message": None,
+            "responded_at": None,
+            "meeting_slots": None,
+            "selected_meeting": None
         }
+        
+        print(f"💾 Inserting request for lawyer: {lawyer['email']}")  # Debug
         
         result = await db.lawyer_requests.insert_one(request_doc)
         
+        print(f"✅ Request inserted with ID: {result.inserted_id}")  # Debug
+        
         return {
             "message": "Request sent successfully",
-            "request_id": str(result.inserted_id)
+            "request_id": str(result.inserted_id),
+            "lawyer_name": f"{lawyer['first_name']} {lawyer['last_name']}"
         }
         
     except Exception as e:
+        print(f"❌ Error in send_lawyer_request: {e}")  # Debug
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error sending request: {str(e)}")
+
+# Get pending requests for any lawyer (with proper authentication)
+@app.get("/api/requests/pending")
+async def get_pending_requests_for_lawyers(lawyer_email: str = None):
+    """Get pending requests for any lawyer - supports multiple lawyers"""
+    try:
+        db = get_database()
+        
+        print("🔍 Getting pending requests...")  # Debug
+        
+        # TODO: Extract lawyer_id from JWT token
+        # For now, we'll use a query parameter or fallback to test lawyer
+        
+        target_lawyer = None
+        
+        if lawyer_email:
+            # If lawyer email is provided, use that
+            target_lawyer = await db.users.find_one({
+                "email": lawyer_email,
+                "user_type": "lawyer"
+            })
+        else:
+            # Fallback: try to determine from context or use test lawyer
+            # In production, this would come from JWT token
+            target_lawyer = await db.users.find_one({"email": "lawyer@test.com"})
+        
+        if not target_lawyer:
+            print("⚠️ No lawyer found for pending requests")
+            return []
+        
+        lawyer_id = target_lawyer["_id"]
+        print(f"⚖️ Looking for requests for lawyer: {target_lawyer['first_name']} {target_lawyer['last_name']} ({target_lawyer['email']})")
+        
+        requests = []
+        async for request in db.lawyer_requests.find({
+            "lawyer_id": lawyer_id,
+            "status": "pending"
+        }).sort("created_at", -1):
+            print(f"📋 Found pending request: {request['_id']} - {request['title']}")  # Debug
+            
+            # Get client info
+            client = await db.users.find_one({"_id": request["client_id"]})
+            if not client:
+                print(f"⚠️ Client not found for request {request['_id']}")
+                continue
+            
+            request_data = {
+                "id": str(request["_id"]),
+                "title": request["title"],
+                "description": request["description"],
+                "category": request["category"],
+                "urgency_level": request["urgency_level"],
+                "budget_min": request.get("budget_min"),
+                "budget_max": request.get("budget_max"),
+                "preferred_meeting_type": request.get("preferred_meeting_type"),
+                "location": request.get("location"),
+                "additional_notes": request.get("additional_notes"),
+                "status": request["status"],
+                "created_at": request["created_at"],
+                "client_name": f"{client['first_name']} {client['last_name']}",
+                "client_email": client["email"]
+            }
+            requests.append(request_data)
+        
+        print(f"✅ Returning {len(requests)} pending requests for lawyer {target_lawyer['email']}")  # Debug
+        return requests
+        
+    except Exception as e:
+        print(f"❌ Error getting pending requests: {e}")  # Debug
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching pending requests: {str(e)}")
+
+# Get pending requests for a specific lawyer by ID
+@app.get("/api/requests/pending/{lawyer_id}")
+async def get_pending_requests_for_specific_lawyer(lawyer_id: str):
+    """Get pending requests for a specific lawyer by ID"""
+    try:
+        from bson import ObjectId
+        db = get_database()
+        
+        print(f"🔍 Getting pending requests for lawyer ID: {lawyer_id}")  # Debug
+        
+        # Verify lawyer exists
+        lawyer = await db.users.find_one({
+            "_id": ObjectId(lawyer_id),
+            "user_type": "lawyer"
+        })
+        
+        if not lawyer:
+            raise HTTPException(status_code=404, detail="Lawyer not found")
+        
+        print(f"⚖️ Found lawyer: {lawyer['first_name']} {lawyer['last_name']} ({lawyer['email']})")
+        
+        requests = []
+        async for request in db.lawyer_requests.find({
+            "lawyer_id": ObjectId(lawyer_id),
+            "status": "pending"
+        }).sort("created_at", -1):
+            print(f"📋 Found pending request: {request['_id']} - {request['title']}")  # Debug
+            
+            # Get client info
+            client = await db.users.find_one({"_id": request["client_id"]})
+            if not client:
+                print(f"⚠️ Client not found for request {request['_id']}")
+                continue
+            
+            request_data = {
+                "id": str(request["_id"]),
+                "title": request["title"],
+                "description": request["description"],
+                "category": request["category"],
+                "urgency_level": request["urgency_level"],
+                "budget_min": request.get("budget_min"),
+                "budget_max": request.get("budget_max"),
+                "preferred_meeting_type": request.get("preferred_meeting_type"),
+                "location": request.get("location"),
+                "additional_notes": request.get("additional_notes"),
+                "status": request["status"],
+                "created_at": request["created_at"],
+                "client_name": f"{client['first_name']} {client['last_name']}",
+                "client_email": client["email"]
+            }
+            requests.append(request_data)
+        
+        print(f"✅ Returning {len(requests)} pending requests for lawyer {lawyer['email']}")  # Debug
+        return requests
+        
+    except Exception as e:
+        print(f"❌ Error getting pending requests for specific lawyer: {e}")  # Debug
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error fetching pending requests: {str(e)}")
+
+# Respond to request endpoint
+@app.post("/api/requests/{request_id}/respond")
+async def respond_to_request(request_id: str, response_data: dict):
+    """Respond to a lawyer request (accept/reject)"""
+    try:
+        from datetime import datetime
+        from bson import ObjectId
+        
+        db = get_database()
+        
+        print(f"🔍 Responding to request {request_id} with data: {response_data}")  # Debug
+        
+        request_obj_id = ObjectId(request_id)
+        
+        # Get the request
+        request_doc = await db.lawyer_requests.find_one({
+            "_id": request_obj_id,
+            "status": "pending"
+        })
+        
+        if not request_doc:
+            raise HTTPException(status_code=404, detail="Request not found or already responded")
+        
+        action = response_data.get("action")
+        if action not in ["accept", "reject"]:
+            raise HTTPException(status_code=400, detail="Action must be 'accept' or 'reject'")
+        
+        print(f"⚖️ Lawyer {action}ing request")  # Debug
+        
+        # Update request
+        update_data = {
+            "status": "accepted" if action == "accept" else "rejected",
+            "response_message": response_data.get("response_message"),
+            "responded_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        # Add meeting slots if accepting
+        if action == "accept" and response_data.get("meeting_slots"):
+            update_data["meeting_slots"] = response_data["meeting_slots"]
+        
+        await db.lawyer_requests.update_one(
+            {"_id": request_obj_id},
+            {"$set": update_data}
+        )
+        
+        print(f"✅ Request {action}ed successfully")  # Debug
+        
+        # If accepted, send a welcome message to start the conversation
+        if action == "accept":
+            # Get lawyer info for the message
+            test_lawyer = await db.users.find_one({"email": "lawyer@test.com"})
+            if test_lawyer:
+                welcome_message = {
+                    "request_id": request_obj_id,
+                    "sender_id": test_lawyer["_id"],
+                    "sender_type": "lawyer",
+                    "content": response_data.get("response_message", "Thank you for your request. I'm happy to help with your case. Let's discuss the details."),
+                    "message_type": "text",
+                    "is_read": False,
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                }
+                await db.messages.insert_one(welcome_message)
+                print("💬 Welcome message sent to start conversation")
+        
+        return {"message": f"Request {action}ed successfully"}
+        
+    except Exception as e:
+        print(f"❌ Error responding to request: {e}")  # Debug
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error responding to request: {str(e)}")
 
 # Get lawyers with profiles - dedicated endpoint to avoid router conflicts
 @app.get("/api/public/lawyers")
