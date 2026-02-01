@@ -46,16 +46,6 @@ class LawyerRequestBase(BaseModel):
 class LawyerRequestCreate(LawyerRequestBase):
     lawyer_id: str  # The lawyer being requested
 
-class MeetingLinkData(BaseModel):
-    """Meeting link information"""
-    meeting_id: str
-    join_url: str
-    host_url: Optional[str] = None
-    provider: str  # "google_meet" or "zoom"
-    created_at: datetime
-    expires_at: Optional[datetime] = None
-    meeting_password: Optional[str] = None
-
 class LawyerRequestInDB(LawyerRequestBase):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     client_id: PyObjectId
@@ -67,11 +57,9 @@ class LawyerRequestInDB(LawyerRequestBase):
     responded_at: Optional[datetime] = None
     meeting_slots: Optional[List[Dict[str, Any]]] = None  # Available meeting times
     selected_meeting: Optional[Dict[str, Any]] = None  # Client's selected meeting slot
-    meeting_link: Optional[MeetingLinkData] = None  # Generated meeting link
-    meeting_created_at: Optional[datetime] = None  # When meeting link was created
 
     class Config:
-        populate_by_name = True
+        allow_population_by_field_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
 
@@ -93,8 +81,6 @@ class LawyerRequestResponse(BaseModel):
     responded_at: Optional[datetime]
     meeting_slots: Optional[List[Dict[str, Any]]] = None  # Available meeting times
     selected_meeting: Optional[Dict[str, Any]] = None  # Client's selected meeting slot
-    meeting_link: Optional[MeetingLinkData] = None  # Generated meeting link
-    meeting_created_at: Optional[datetime] = None  # When meeting link was created
     
     # Client information
     client_name: str

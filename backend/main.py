@@ -13,7 +13,7 @@ load_dotenv()
 
 # Import routers
 try:
-    from routers import auth, users, lawyers, cases, ai_matching, lawyer_requests, chat
+    from routers import auth, users, lawyers, cases, ai_matching, lawyer_requests
     print("✅ All routers imported successfully")
 except Exception as e:
     print(f"❌ Router import error: {e}")
@@ -135,12 +135,10 @@ app.include_router(lawyer_requests.router, prefix="/api/requests", tags=["Lawyer
 print("   ✅ Lawyer requests router included")
 app.include_router(ai_matching.router, prefix="/api/ai", tags=["AI Services"])
 print("   ✅ AI matching router included")
-app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
-print("   ✅ Chat router included")
 print("🎉 All routers included successfully!")
 
 # Mount static files (HTML pages)
-app.mount("/pages", StaticFiles(directory="pages"), name="pages")
+app.mount("/pages", StaticFiles(directory="../pages"), name="pages")
 print("✅ Static files mounted at /pages")
 
 @app.get("/")
@@ -174,6 +172,179 @@ async def get_lawyers():
         return {"lawyers": lawyers}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching lawyers: {str(e)}")
+
+# Simple login endpoint for quick testing
+@app.post("/api/auth/login")
+async def login(login_data: dict):
+    """Simple login endpoint"""
+    try:
+        email = login_data.get("email")
+        password = login_data.get("password")
+        
+        if not email or not password:
+            raise HTTPException(status_code=400, detail="Email and password required")
+        
+        db = get_database()
+        user = await db.users.find_one({"email": email})
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # For now, just return success (you can add password verification later)
+        user["_id"] = str(user["_id"])
+        user.pop("password_hash", None)
+        
+        return {
+            "access_token": "fake-token-for-testing",
+            "token_type": "bearer",
+            "user": user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+
+# Signup endpoint for both clients and lawyers
+@app.post("/api/auth/signup")
+async def signup(signup_data: dict):
+    """Handle user registration for both clients and lawyers"""
+    try:
+        print(f"🔍 Received signup data: {signup_data}")  # Debug logging
+        
+        # Extract common fields
+        email = signup_data.get("email", "").strip().lower()
+        password = signup_data.get("password", "")
+        full_name = signup_data.get("full_name", "").strip()
+        user_type = signup_data.get("user_type", "client")  # default to client
+        
+        print(f"📋 Parsed fields - Email: {email}, Full Name: {full_name}, Type: {user_type}")  # Debug
+        
+        # Validation
+        if not email or not password or not full_name:
+            print(f"❌ Validation failed - Missing fields")  # Debug
+            raise HTTPException(
+                status_code=400, 
+                detail="Email, password, and full name are required"
+            )
+        
+        if len(password) < 8:
+            print(f"❌ Validation failed - Password too short")  # Debug
+            raise HTTPException(
+                status_code=400,
+                detail="Password must be at least 8 characters long"
+            )
+        
+        # Split full name into first and last name
+        name_parts = full_name.split(" ", 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+        
+        db = get_database()
+        if db is None:
+            print("❌ Database connection failed")
+            raise HTTPException(status_code=500, detail="Database connection failed")
+        
+        # Check if user already exists
+        existing_user = await db.users.find_one({"email": email})
+        if existing_user:
+            print(f"❌ User already exists: {email}")
+            raise HTTPException(
+                status_code=409,
+                detail="User with this email already exists"
+            )
+        
+        # Hash password (simple hash for now - in production use proper bcrypt)
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        password_hash = pwd_context.hash(password)
+        
+        # Create user document
+        from datetime import datetime
+        user_doc = {
+            "email": email,
+            "password_hash": password_hash,
+            "first_name": first_name,
+            "last_name": last_name,
+            "user_type": user_type,
+            "phone": signup_data.get("phone", ""),
+            "profile_image_url": None,
+            "is_verified": False,
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        
+        # Create lawyer profile if user is a lawyer
+        if user_type == "lawyer":
+            bar_number = signup_data.get("bar_number", "").strip()
+            if not bar_number:
+                print(f"❌ Bar number missing for lawyer")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Bar Association ID is required for lawyers"
+                )
+            user_doc["bar_number"] = bar_number
+            user_doc["bar_state"] = signup_data.get("bar_state", "")
+            user_doc["law_firm"] = signup_data.get("law_firm", "")
+            user_doc["specializations"] = signup_data.get("specializations", [])
+        
+        # Insert user into database
+        print(f"💾 Inserting user into database...")
+        result = await db.users.insert_one(user_doc)
+        user_id = str(result.inserted_id)
+        print(f"✅ User created with ID: {user_id}")
+        
+        # Create lawyer profile if user is a lawyer
+        if user_type == "lawyer":
+            print(f"👨‍⚖️ Creating lawyer profile...")
+            lawyer_profile = {
+                "user_id": result.inserted_id,
+                "bar_number": bar_number,
+                "bar_state": signup_data.get("bar_state", ""),
+                "law_firm": signup_data.get("law_firm", ""),
+                "years_experience": int(signup_data.get("years_experience", 0)),
+                "hourly_rate": float(signup_data.get("hourly_rate", 0)) if signup_data.get("hourly_rate") else None,
+                "bio": signup_data.get("bio", ""),
+                "specializations": signup_data.get("specializations", []),
+                "education": [],
+                "certifications": [],
+                "languages": ["English"],
+                "availability_status": "available",
+                "rating": 0.0,
+                "total_reviews": 0,
+                "total_cases": 0,
+                "success_rate": 0.0,
+                "ai_match_score": 0.0,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            await db.lawyers.insert_one(lawyer_profile)
+            print(f"✅ Lawyer profile created")
+        
+        # Return success response (without password hash)
+        user_response = {
+            "id": user_id,
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "user_type": user_type,
+            "is_verified": False,
+            "is_active": True
+        }
+        
+        print(f"🎉 Registration successful for: {email}")
+        return {
+            "message": "User registered successfully",
+            "user": user_response,
+            "access_token": "fake-token-for-testing",
+            "token_type": "bearer"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"💥 Signup error: {e}")  # Debug logging
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
 
 # Add explicit OPTIONS handler for CORS
 @app.options("/api/auth/signup")

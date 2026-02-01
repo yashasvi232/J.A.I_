@@ -77,13 +77,6 @@ async def create_indexes():
         await database.ai_matches.create_index("lawyer_id")
         await database.ai_matches.create_index("match_score")
         
-        # Chat messages collection indexes
-        await database.chat_messages.create_index("request_id")
-        await database.chat_messages.create_index("sender_id")
-        await database.chat_messages.create_index("timestamp")
-        await database.chat_messages.create_index([("request_id", 1), ("timestamp", 1)])
-        await database.chat_messages.create_index([("request_id", 1), ("is_read", 1)])
-        
         logging.info("Database indexes created successfully")
         
     except Exception as e:

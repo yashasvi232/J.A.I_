@@ -468,44 +468,6 @@
             transform: translateY(-1px);
         }
         
-        .chat-btn-small {
-            background: #10b981;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .chat-btn-small:hover {
-            background: #059669;
-        }
-        
-        .meeting-link-small {
-            margin-top: 8px;
-        }
-        
-        .meeting-link-btn-small {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: #0284c7;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 0.75rem;
-            font-weight: 600;
-            transition: background-color 0.2s;
-        }
-        
-        .meeting-link-btn-small:hover {
-            background: #0369a1;
-            color: white;
-        }
-        
         .urgency-badge {
             padding: 4px 8px;
             border-radius: 12px;
@@ -659,7 +621,6 @@
             </a>
             <ul class="nav-links">
                 <li><a href="index.html">Home</a></li>
-                <li><a href="simple-chat.html">Chat</a></li>
                 <li><a href="lawyer-terms.html">Terms</a></li>
             </ul>
             <div class="nav-auth">
@@ -777,8 +738,8 @@
 
             <div class="dashboard-card">
                 <div class="card-header">
-                    <i class="fas fa-comments card-icon"></i>
-                    <h3 class="card-title">Active Conversations</h3>
+                    <i class="fas fa-folder-open card-icon"></i>
+                    <h3 class="card-title">Recent Cases</h3>
                 </div>
                 <div id="recentCases">
                     <div class="empty-state">
@@ -1214,58 +1175,25 @@
         }
 
         function displayRecentCases(cases) {
-            // Instead of showing cases, let's show accepted requests with chat functionality
-            loadAcceptedRequests();
-        }
-        
-        // Load accepted requests for chat
-        async function loadAcceptedRequests() {
-            try {
-                const requestsData = await apiCall('/requests/');
-                if (requestsData) {
-                    const acceptedRequests = requestsData.filter(req => req.status === 'accepted');
-                    displayAcceptedRequests(acceptedRequests);
-                }
-            } catch (error) {
-                console.error('Error loading accepted requests:', error);
-            }
-        }
-        
-        // Display accepted requests with chat functionality
-        function displayAcceptedRequests(requests) {
             const container = document.getElementById('recentCases');
-            
-            if (requests.length === 0) {
+            if (cases.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <i class="fas fa-comments"></i>
-                        <p>No active client conversations yet. Accept requests to start chatting!</p>
+                        <i class="fas fa-briefcase"></i>
+                        <p>No cases assigned yet. Complete your profile to start receiving matches!</p>
                     </div>
                 `;
                 return;
             }
 
-            container.innerHTML = requests.slice(0, 3).map(function(request) {
+            container.innerHTML = cases.slice(0, 3).map(function(caseItem) {
                 return `
                     <div class="case-item">
                         <div class="case-info">
-                            <h4>${request.title}</h4>
-                            <p class="case-date">Client: ${request.client_name}</p>
-                            <p class="case-date">${new Date(request.created_at).toLocaleDateString()}</p>
-                            ${request.meeting_link ? `
-                                <div class="meeting-link-small">
-                                    <a href="${request.meeting_link.join_url}" target="_blank" class="meeting-link-btn-small">
-                                        <i class="fas fa-video"></i> Meeting Link
-                                    </a>
-                                </div>
-                            ` : ''}
+                            <h4>${caseItem.title || 'Untitled Case'}</h4>
+                            <p class="case-date">${new Date(caseItem.created_at).toLocaleDateString()}</p>
                         </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
-                            <span class="case-status status-accepted">Active</span>
-                            <button class="chat-btn-small" onclick="openChatForRequest('${request.id}', '${request.title}', '${request.client_name}')" title="Open Chat">
-                                <i class="fas fa-comments"></i>
-                            </button>
-                        </div>
+                        <span class="case-status status-${caseItem.status}">${caseItem.status}</span>
                     </div>
                 `;
             }).join('');
@@ -1404,19 +1332,6 @@
                 localStorage.removeItem('userLoggedIn');
                 window.location.href = 'index.html';
             }
-        }
-        
-        // Open chat for a specific request
-        function openChatForRequest(requestId, requestTitle, clientName) {
-            // Store chat context in localStorage for the chat page
-            localStorage.setItem('chatContext', JSON.stringify({
-                requestId: requestId,
-                requestTitle: requestTitle,
-                clientName: clientName
-            }));
-            
-            // Open simple chat page
-            window.open('simple-chat.html', '_blank');
         }
 
         // Initialize dashboard

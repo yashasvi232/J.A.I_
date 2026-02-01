@@ -1,56 +1,48 @@
 #!/usr/bin/env python3
 """
-Check accepted requests with meeting links
+Check accepted requests and their meeting slots
 """
-import asyncio
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from database import connect_to_mongo, get_database
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
+from dotenv import load_dotenv
+import json
+
+load_dotenv()
+MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "jai_database")
 
 async def check_accepted_requests():
-    """Check accepted requests with meeting links"""
-    
-    # Connect to database
-    await connect_to_mongo()
-    db = get_database()
-    
-    print("✅ Connected to database")
+    client = AsyncIOMotorClient(MONGODB_URL)
+    db = client[DATABASE_NAME]
     
     # Find accepted requests
-    accepted_requests = await db.lawyer_requests.find({"status": "accepted"}).to_list(length=10)
+    accepted_requests = await db.lawyer_requests.find({"status": "accepted"}).to_list(length=100)
     
-    print(f"📊 Found {len(accepted_requests)} accepted requests")
+    print(f"Found {len(accepted_requests)} accepted requests:")
+    print()
     
-    for i, req in enumerate(accepted_requests):
-        print(f"\n📋 Request {i+1}: {req['title']}")
-        print(f"   ID: {req['_id']}")
-        print(f"   Status: {req['status']}")
-        print(f"   Client ID: {req['client_id']}")
-        print(f"   Lawyer ID: {req['lawyer_id']}")
+    for i, req in enumerate(accepted_requests, 1):
+        print(f"{i}. Title: {req.get('title', 'No title')}")
+        print(f"   Status: {req.get('status', 'unknown')}")
+        print(f"   Response: {req.get('response_message', 'No response')}")
         
-        if req.get('meeting_link'):
-            meeting_link = req['meeting_link']
-            print(f"   🔗 Meeting Link: {meeting_link['join_url']}")
-            print(f"   📅 Provider: {meeting_link['provider']}")
-            print(f"   🆔 Meeting ID: {meeting_link['meeting_id']}")
+        meeting_slots = req.get('meeting_slots')
+        if meeting_slots:
+            print(f"   Meeting Slots: {json.dumps(meeting_slots, indent=4, default=str)}")
         else:
-            print(f"   ❌ No meeting link")
+            print("   Meeting Slots: None")
         
-        if req.get('meeting_slots'):
-            print(f"   📅 Meeting Slots: {len(req['meeting_slots'])}")
-            for slot in req['meeting_slots']:
-                print(f"      - {slot['date']} at {slot['time']} ({slot['meeting_type']})")
+        selected_meeting = req.get('selected_meeting')
+        if selected_meeting:
+            print(f"   Selected Meeting: {json.dumps(selected_meeting, indent=4, default=str)}")
+        else:
+            print("   Selected Meeting: None")
         
-        # Get client and lawyer names
-        client = await db.users.find_one({"_id": req["client_id"]})
-        lawyer = await db.users.find_one({"_id": req["lawyer_id"]})
-        
-        if client:
-            print(f"   👤 Client: {client['first_name']} {client['last_name']} ({client['email']})")
-        if lawyer:
-            print(f"   ⚖️ Lawyer: {lawyer['first_name']} {lawyer['last_name']} ({lawyer['email']})")
+        print()
+    
+    client.close()
 
 if __name__ == "__main__":
     asyncio.run(check_accepted_requests())

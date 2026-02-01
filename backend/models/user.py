@@ -42,7 +42,7 @@ class UserUpdate(BaseModel):
     profile_image_url: Optional[str] = None
 
 class UserInDB(UserBase):
-    id: str = Field(alias="_id")
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     password_hash: str
     profile_image_url: Optional[str] = None
     is_verified: bool = False
@@ -53,6 +53,7 @@ class UserInDB(UserBase):
     class Config:
         populate_by_name = True
         arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
 
 class UserResponse(UserBase):
     id: str = Field(alias="_id")
